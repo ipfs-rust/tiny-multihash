@@ -1,20 +1,21 @@
 use crate::error::Error;
-use crate::hasher::Hasher;
-use core::convert::TryFrom;
 use core::fmt::Debug;
 
 /// Trait for a multihash digest.
-pub trait MultihashDigest<C: MultihashCode>: Clone + Debug + Eq + Send + Sync + 'static {
+pub trait MultihashDigest: Clone + Debug + Eq + Send + Sync + 'static {
+    //const CODE: u64;
+
     /// Returns the code of the multihash.
-    fn code(&self) -> C;
+    fn code(&self) -> u64;
 
     /// Returns the size of the digest.
-    fn size(&self) -> u8 {
-        self.code().size()
-    }
+    fn size(&self) -> u8;
 
     /// Returns the digest.
     fn digest(&self) -> &[u8];
+
+    ///// Returns the hash of the input.
+    fn new(code: u64, input: &[u8]) -> Result<Self, Error>;
 
     /// Reads a multihash from a byte stream.
     #[cfg(feature = "std")]
@@ -47,38 +48,12 @@ pub trait MultihashDigest<C: MultihashCode>: Clone + Debug + Eq + Send + Sync + 
     }
 }
 
-/// Trait to compute the digest of a multihash code.
-pub trait MultihashCode:
-    Into<u64> + TryFrom<u64, Error = Error> + Copy + Debug + Eq + Send + Sync + 'static
-{
-    /// Multihash type.
-    type Multihash: MultihashDigest<Self>;
-
-    /// Returns the size of the digest.
-    fn size(&self) -> u8;
-
-    /// Returns the hash of the input.
-    fn digest(&self, input: &[u8]) -> Self::Multihash;
-}
-
-/// Trait to extend a `Hasher` with support for a code.
-pub trait MultihasherCode<C: MultihashCode>: Hasher {
-    /// The code of the hash function.
-    const CODE: C;
-
-    /// Get the code at runtime.
-    fn code(&self) -> C {
-        Self::CODE
-    }
-}
-
 /// Writes the multihash to a byte stream.
 #[cfg(feature = "std")]
-pub fn write_mh<W, C, D>(mut w: W, mh: &D) -> Result<(), Error>
+pub fn write_mh<W, D>(mut w: W, mh: &D) -> Result<(), Error>
 where
     W: std::io::Write,
-    C: MultihashCode,
-    D: MultihashDigest<C>,
+    D: MultihashDigest,
 {
     use unsigned_varint::encode as varint_encode;
 
@@ -96,13 +71,12 @@ where
 
 /// Reads a code from a byte stream.
 #[cfg(feature = "std")]
-pub fn read_code<R, C>(mut r: R) -> Result<C, Error>
+pub fn read_code<R>(mut r: R) -> Result<u64, Error>
 where
     R: std::io::Read,
-    C: MultihashCode,
 {
     use unsigned_varint::io::read_u64;
-    C::try_from(read_u64(&mut r)?)
+    Ok(read_u64(&mut r)?)
 }
 
 /// Reads a multihash from a byte stream.
@@ -129,6 +103,7 @@ where
 mod tests {
     use super::*;
     use crate::code::Multihash;
+    use crate::hasher::Hasher;
     use crate::hasher_impl::strobe::Strobe256;
 
     #[test]

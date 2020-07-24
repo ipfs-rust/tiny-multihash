@@ -1,12 +1,9 @@
-#[macro_use]
-extern crate multihash;
+use multihash::{read_code, read_digest, Error, Hasher, Multihash, MultihashDigest};
 
-use multihash::{read_code, read_digest, Error, Hasher, MultihashCode, MultihashDigest};
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Multihash, PartialEq)]
-enum MyCodeTable {
-    #[mh(code = 0x1, hasher = multihash::Sha2_256, digest = multihash::Sha2Digest<multihash::U32>)]
-    Foo,
-    #[mh(code = 0x2, hasher = multihash::Sha2_512, digest = multihash::Sha2Digest<multihash::U64>)]
-    Bar,
+#[derive(Clone, Debug, Eq, Multihash, PartialEq)]
+pub enum Multihash {
+    #[mh(code = 0x01, hasher = multihash::Sha2_256)]
+    Foo(multihash::Sha2Digest<multihash::U32>),
+    #[mh(code = 0x02, hasher = multihash::Sha2_512)]
+    Bar(multihash::Sha2Digest<multihash::U64>),
 }

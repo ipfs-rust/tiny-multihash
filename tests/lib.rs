@@ -1,3 +1,6 @@
+// TODO vmx 2020-07-27: do actually use uppercase
+#![allow(non_upper_case_globals)]
+
 use multihash::code::*;
 use multihash::*;
 
@@ -11,6 +14,22 @@ fn hex_to_bytes(s: &str) -> Vec<u8> {
     }
     v
 }
+
+const Sha1: u64 = 0x11;
+const Sha2_256: u64 = 0x12;
+const Sha2_512: u64 = 0x13;
+const Sha3_224: u64 = 0x17;
+const Sha3_256: u64 = 0x16;
+const Sha3_384: u64 = 0x15;
+const Sha3_512: u64 = 0x14;
+const Keccak224: u64 = 0x1a;
+const Keccak256: u64 = 0x1b;
+const Keccak384: u64 = 0x1c;
+const Keccak512: u64 = 0x1d;
+const Blake2b256: u64 = 0xb220;
+const Blake2b512: u64 = 0xb240;
+const Blake2s128: u64 = 0xb250;
+const Blake2s256: u64 = 0xb260;
 
 macro_rules! assert_encode {
     {$( $alg:ty, $data:expr, $expect:expr; )*} => {
@@ -65,7 +84,7 @@ macro_rules! assert_decode {
             let hash = hex_to_bytes($hash);
             assert_eq!(
                 Multihash::from_bytes(&hash).unwrap().code(),
-                Code::$alg,
+                $alg,
                 "{:?} decodes correctly", stringify!($alg)
             );
         )*
@@ -249,7 +268,7 @@ fn multihash_errors() {
         Multihash::from_bytes(&[0x12, 0x20, 0xff]).is_err(),
         "Should error on correct prefix with wrong digest"
     );
-    let identity_code = <u64>::from(Code::Identity256) as u8;
+    let identity_code: u8 = 0x00;
     let identity_length = 3;
     assert!(
         Multihash::from_bytes(&[identity_code, identity_length, 1, 2, 3, 4]).is_err(),
