@@ -54,6 +54,60 @@ pub trait MultihashCreate: Clone + Debug + Eq + Send + Sync + 'static {
     fn new(code: u64, input: &[u8]) -> Result<Self, Error>;
 }
 
+/// A Multihash instance that only supports the basic functionality and no hashing.
+///
+/// With this Multihash implementation you can operate on Multihashes in a generic way, but
+/// no hasher implementation is associated with the code.
+///
+/// # Example
+///
+/// ```
+/// use multihash::{BasicMultihash, MultihashDigest};
+///
+/// const Sha3_256: u64 = 0x16;
+/// let digest_bytes = [
+///     0x16, 0x20, 0x64, 0x4b, 0xcc, 0x7e, 0x56, 0x43, 0x73, 0x04, 0x09, 0x99, 0xaa, 0xc8, 0x9e,
+///     0x76, 0x22, 0xf3, 0xca, 0x71, 0xfb, 0xa1, 0xd9, 0x72, 0xfd, 0x94, 0xa3, 0x1c, 0x3b, 0xfb,
+///     0xf2, 0x4e, 0x39, 0x38,
+/// ];
+/// let mh = BasicMultihash::from_bytes(&digest_bytes).unwrap();
+/// assert_eq!(mh.code(), Sha3_256);
+/// assert_eq!(mh.size(), 32);
+/// assert_eq!(mh.digest(), &digest_bytes[2..]);
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BasicMultihash {
+    /// The code of the Multihash.
+    code: u64,
+    /// The actual size of the digest in bytes (not the allocated size).
+    size: u8,
+    /// The digest.
+    digest: crate::UnknownDigest<crate::U32>,
+}
+
+impl MultihashDigest for BasicMultihash {
+    fn code(&self) -> u64 {
+        self.code
+    }
+
+    fn size(&self) -> u8 {
+        self.size
+    }
+
+    fn digest(&self) -> &[u8] {
+        self.digest.as_ref()
+    }
+
+    #[cfg(feature = "std")]
+    fn read<R: std::io::Read>(r: R) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        let (code, size, digest) = read_multihash(r)?;
+        Ok(BasicMultihash { code, size, digest })
+    }
+}
+
 /// Writes the multihash to a byte stream.
 #[cfg(feature = "std")]
 pub fn write_mh<W, D>(mut w: W, mh: &D) -> Result<(), Error>
@@ -85,7 +139,9 @@ where
     Ok(read_u64(&mut r)?)
 }
 
-/// Reads a multihash from a byte stream.
+/// Reads a multihash from a byte stream that contains the digest prefixed with the size.
+///
+/// The byte stream must not contain the code as prefix.
 #[cfg(feature = "std")]
 pub fn read_digest<R, S, D>(mut r: R) -> Result<D, Error>
 where
@@ -103,6 +159,34 @@ where
     let mut digest = GenericArray::default();
     r.read_exact(&mut digest)?;
     Ok(D::from(digest))
+}
+
+/// Reads a multihash from a byte stream that contains a full multihash (code, size and the digest)
+///
+/// Returns the code, size and the digest. The size is the actual size and not the
+/// maximum/allocated size of the digest.
+///
+/// Currently the maximum size for a digest is 255 bytes.
+#[cfg(feature = "std")]
+pub fn read_multihash<R, S, D>(mut r: R) -> Result<(u64, u8, D), Error>
+where
+    R: std::io::Read,
+    S: crate::hasher::Size,
+    D: crate::hasher::Digest<S>,
+{
+    use generic_array::GenericArray;
+    use unsigned_varint::io::read_u64;
+
+    let code = read_u64(&mut r)?;
+    let size = read_u64(&mut r)?;
+
+    if size > S::to_u64() || size > u8::MAX as u64 {
+        return Err(Error::InvalidSize(size));
+    }
+
+    let mut digest = GenericArray::default();
+    r.read_exact(&mut digest)?;
+    Ok((code, size as u8, D::from(digest)))
 }
 
 #[cfg(test)]

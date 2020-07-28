@@ -275,3 +275,13 @@ fn multihash_errors() {
         "Should error on wrong hash length"
     );
 }
+
+#[test]
+fn test_basic_multihash() {
+    let digest_hex = "1620644bcc7e564373040999aac89e7622f3ca71fba1d972fd94a31c3bfbf24e3938";
+    let digest_bytes = hex_to_bytes(digest_hex);
+    let mh = BasicMultihash::from_bytes(&digest_bytes).unwrap();
+    assert_eq!(mh.code(), Sha3_256);
+    assert_eq!(mh.size(), 32);
+    assert_eq!(mh.digest(), &digest_bytes[2..]);
+}

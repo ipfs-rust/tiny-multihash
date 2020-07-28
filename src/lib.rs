@@ -19,7 +19,7 @@ pub use crate::hasher::{Digest, Hasher, Size};
 #[cfg(feature = "std")]
 pub use crate::multihash::{read_code, read_digest, write_mh};
 //pub use crate::multihash::{MultihashCode, MultihashDigest};
-pub use crate::multihash::{MultihashCreate, MultihashDigest};
+pub use crate::multihash::{BasicMultihash, MultihashCreate, MultihashDigest};
 pub use generic_array::typenum::{self, U16, U20, U28, U32, U48, U64};
 #[cfg(feature = "derive")]
 pub use multihash_proc_macro::Multihash;
@@ -39,3 +39,4 @@ pub use crate::hasher_impl::sha3::{Keccak224, Keccak256, Keccak384, Keccak512, K
 pub use crate::hasher_impl::sha3::{Sha3Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512};
 #[cfg(feature = "strobe")]
 pub use crate::hasher_impl::strobe::{Strobe256, Strobe512, StrobeDigest, StrobeHasher};
+pub use crate::hasher_impl::unknown::UnknownDigest;
