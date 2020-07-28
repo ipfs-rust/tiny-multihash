@@ -66,7 +66,7 @@ mod tests {
     use super::*;
     use crate::hasher::Hasher;
     use crate::hasher_impl::strobe::{Strobe256, Strobe512};
-    use crate::multihash::MultihashDigest;
+    use crate::multihash::{MultihashCreate, MultihashDigest};
 
     const STROBE_256: u64 = 0xa0;
     const STROBE_512: u64 = 0xa1;

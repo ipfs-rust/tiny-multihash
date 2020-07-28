@@ -193,13 +193,6 @@ pub fn multihash(s: Structure) -> TokenStream {
                 }
             }
 
-            fn new(code: u64, input: &[u8]) -> Result<Self, #mh::Error> {
-                match code {
-                    #(#digest_new,)*
-                    _ => Err(#mh::Error::UnsupportedCode(code)),
-                }
-            }
-
             #[cfg(feature = "std")]
             fn read<R: std::io::Read>(mut r: R) -> Result<Self, #mh::Error>
             where
@@ -211,6 +204,15 @@ pub fn multihash(s: Structure) -> TokenStream {
                     _ => Err(#mh::Error::UnsupportedCode(code)),
                 }
             }
+        }
+
+        impl #mh::MultihashCreate for #mh_digest {
+           fn new(code: u64, input: &[u8]) -> Result<Self, #mh::Error> {
+              match code {
+                  #(#digest_new,)*
+                  _ => Err(#mh::Error::UnsupportedCode(code)),
+              }
+           }
         }
 
         #(#from_digest)*
@@ -259,13 +261,6 @@ mod tests {
                         Multihash::Strobe256(mh) => mh.as_ref(),
                     }
                 }
-                fn new(code: u64, input: &[u8]) -> Result<Self, multihash::Error> {
-                    match code {
-                        0x00 => Ok(Self::Identity256(multihash::Identity256::digest(input))),
-                        0x01 => Ok(Self::Strobe256(multihash::Strobe256::digest(input))),
-                        _ => Err(multihash::Error::UnsupportedCode(code)),
-                    }
-                }
                 #[cfg(feature = "std")]
                 fn read<R: std::io::Read>(mut r: R) -> Result<Self, multihash::Error>
                 where
@@ -275,6 +270,15 @@ mod tests {
                     match code {
                         0x00 => Ok(Self::Identity256(multihash::read_digest(r)?)),
                         0x01 => Ok(Self::Strobe256(multihash::read_digest(r)?)),
+                        _ => Err(multihash::Error::UnsupportedCode(code)),
+                    }
+                }
+            }
+            impl multihash::MultihashCreate for Multihash {
+                fn new(code: u64, input: &[u8]) -> Result<Self, multihash::Error> {
+                    match code {
+                        0x00 => Ok(Self::Identity256(multihash::Identity256::digest(input))),
+                        0x01 => Ok(Self::Strobe256(multihash::Strobe256::digest(input))),
                         _ => Err(multihash::Error::UnsupportedCode(code)),
                     }
                 }

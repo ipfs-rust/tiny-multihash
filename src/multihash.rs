@@ -1,7 +1,10 @@
 use crate::error::Error;
 use core::fmt::Debug;
 
-/// Trait for a multihash digest.
+/// Trait for reading and writhing Multihashes.
+///
+/// This traits operates on existing hashes. Creation of new hashes is done by the
+/// [`MultihashCreate`] trait.
 pub trait MultihashDigest: Clone + Debug + Eq + Send + Sync + 'static {
     //const CODE: u64;
 
@@ -13,9 +16,6 @@ pub trait MultihashDigest: Clone + Debug + Eq + Send + Sync + 'static {
 
     /// Returns the digest.
     fn digest(&self) -> &[u8];
-
-    ///// Returns the hash of the input.
-    fn new(code: u64, input: &[u8]) -> Result<Self, Error>;
 
     /// Reads a multihash from a byte stream.
     #[cfg(feature = "std")]
@@ -46,6 +46,12 @@ pub trait MultihashDigest: Clone + Debug + Eq + Send + Sync + 'static {
             .expect("writing to a vec should never fail");
         bytes
     }
+}
+
+/// Trait that makes it possible to create a new hash from some data.
+pub trait MultihashCreate: Clone + Debug + Eq + Send + Sync + 'static {
+    /// Returns the hash of the input.
+    fn new(code: u64, input: &[u8]) -> Result<Self, Error>;
 }
 
 /// Writes the multihash to a byte stream.

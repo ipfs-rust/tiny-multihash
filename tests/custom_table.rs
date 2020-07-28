@@ -1,4 +1,6 @@
-use multihash::{read_code, read_digest, Error, Hasher, Multihash, MultihashDigest};
+use multihash::{
+    read_code, read_digest, Error, Hasher, Multihash, MultihashCreate, MultihashDigest,
+};
 
 #[derive(Clone, Debug, Eq, Multihash, PartialEq)]
 pub enum Multihash {
