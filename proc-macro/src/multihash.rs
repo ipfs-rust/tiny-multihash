@@ -30,8 +30,8 @@ impl Parse for MhAttr {
 }
 
 struct Params {
-    mh: syn::Ident,
-    mh_digest: syn::Ident,
+    mh_crate: syn::Ident,
+    mh_enum: syn::Ident,
 }
 
 #[derive(Debug)]
@@ -43,49 +43,46 @@ struct Hash {
 }
 
 impl Hash {
-    fn match_arm_code(&self, tokens: TokenStream) -> TokenStream {
-        let code = &self.code;
-        quote!(#code => #tokens)
-    }
-
-    fn match_arm_digest(&self, params: &Params, tokens: TokenStream) -> TokenStream {
-        let ident = &self.ident;
-        let mh_digest = &params.mh_digest;
-        quote!(#mh_digest::#ident(mh) => #tokens)
-    }
-
     fn digest_code(&self, params: &Params) -> TokenStream {
+        let ident = &self.ident;
+        let mh_enum = &params.mh_enum;
         let code = &self.code;
-        self.match_arm_digest(params, quote!(#code))
+        quote!(#mh_enum::#ident(_mh) => #code)
     }
 
     fn digest_size(&self, params: &Params) -> TokenStream {
+        let ident = &self.ident;
+        let mh_enum = &params.mh_enum;
         let hasher = &self.hasher;
-        self.match_arm_digest(params, quote!(#hasher::size()))
+        quote!(#mh_enum::#ident(_mh) => #hasher::size())
     }
 
     fn digest_digest(&self, params: &Params) -> TokenStream {
-        self.match_arm_digest(params, quote!(mh.as_ref()))
+        let ident = &self.ident;
+        let mh_enum = &params.mh_enum;
+        quote!(#mh_enum::#ident(mh) => mh.as_ref())
     }
 
     fn digest_new(&self) -> TokenStream {
+        let code = &self.code;
         let ident = &self.ident;
         let hasher = &self.hasher;
-        self.match_arm_code(quote!(Ok(Self::#ident(#hasher::digest(input)))))
+        quote!(#code => Ok(Self::#ident(#hasher::digest(input))))
     }
 
     fn digest_read(&self, params: &Params) -> TokenStream {
+        let code = &self.code;
         let ident = &self.ident;
-        let mh = &params.mh;
-        self.match_arm_code(quote!(Ok(Self::#ident(#mh::read_digest(r)?))))
+        let mh = &params.mh_crate;
+        quote!(#code => Ok(Self::#ident(#mh::read_digest(r)?)))
     }
 
     fn from_digest(&self, params: &Params) -> TokenStream {
         let ident = &self.ident;
         let digest = &self.digest;
-        let mh_digest = &params.mh_digest;
+        let mh_enum = &params.mh_enum;
         quote! {
-            impl From<#digest> for #mh_digest {
+            impl From<#digest> for #mh_enum {
                 fn from(digest: #digest) -> Self {
                     Self::#ident(digest)
                 }
@@ -135,7 +132,7 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
             proc_macro_error::abort!(ident, msg);
         });
         let digest = digest.unwrap_or_else(|| {
-            let msg = "Missing digest attribute: #[mh(digest = multihash::Sha2Digest<U32>)]";
+            let msg = "Missing digest in enum variant: Sha256(multihash::Sha2Digest<U32>)]";
             #[cfg(test)]
             panic!(msg);
             #[cfg(not(test))]
@@ -151,12 +148,12 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
 }
 
 pub fn multihash(s: Structure) -> TokenStream {
-    let mh = utils::use_crate("multihash");
-    let mh_digest = &s.ast().ident;
+    let mh_crate = utils::use_crate("multihash");
+    let mh_enum = &s.ast().ident;
     let hashes: Vec<_> = s.variants().iter().map(Hash::from).collect();
     let params = Params {
-        mh: mh.clone(),
-        mh_digest: mh_digest.clone(),
+        mh_crate: mh_crate.clone(),
+        mh_enum: mh_enum.clone(),
     };
 
     let digest_code = hashes.iter().map(|h| h.digest_code(&params));
@@ -167,13 +164,13 @@ pub fn multihash(s: Structure) -> TokenStream {
     let from_digest = hashes.iter().map(|h| h.from_digest(&params));
 
     quote! {
-        impl From<#mh_digest> for u64 {
-           fn from(mh: #mh_digest) -> Self {
+        impl From<#mh_enum> for u64 {
+           fn from(mh: #mh_enum) -> Self {
                mh.code()
            }
         }
 
-        impl #mh::MultihashDigest for #mh_digest {
+        impl #mh_crate::MultihashDigest for #mh_enum {
             fn code(&self) -> u64 {
                match self {
                    #(#digest_code,)*
@@ -181,7 +178,6 @@ pub fn multihash(s: Structure) -> TokenStream {
             }
 
             fn size(&self) -> u8 {
-                use #mh::Hasher;
                 match self {
                     #(#digest_size,)*
                 }
@@ -194,23 +190,23 @@ pub fn multihash(s: Structure) -> TokenStream {
             }
 
             #[cfg(feature = "std")]
-            fn read<R: std::io::Read>(mut r: R) -> Result<Self, #mh::Error>
+            fn read<R: std::io::Read>(mut r: R) -> Result<Self, #mh_crate::Error>
             where
                 Self: Sized
             {
-                let code = #mh::read_code(&mut r)?;
+                let code = #mh_crate::read_code(&mut r)?;
                 match code {
                     #(#digest_read,)*
-                    _ => Err(#mh::Error::UnsupportedCode(code)),
+                    _ => Err(#mh_crate::Error::UnsupportedCode(code)),
                 }
             }
         }
 
-        impl #mh::MultihashCreate for #mh_digest {
-           fn new(code: u64, input: &[u8]) -> Result<Self, #mh::Error> {
+        impl #mh_crate::MultihashCreate for #mh_enum {
+           fn new(code: u64, input: &[u8]) -> Result<Self, #mh_crate::Error> {
               match code {
                   #(#digest_new,)*
-                  _ => Err(#mh::Error::UnsupportedCode(code)),
+                  _ => Err(#mh_crate::Error::UnsupportedCode(code)),
               }
            }
         }
@@ -244,15 +240,14 @@ mod tests {
             impl multihash::MultihashDigest for Multihash {
                 fn code(&self) -> u64 {
                     match self {
-                        Multihash::Identity256(mh) => 0x00,
-                        Multihash::Strobe256(mh) => 0x01,
+                        Multihash::Identity256(_mh) => 0x00,
+                        Multihash::Strobe256(_mh) => 0x01,
                     }
                 }
                 fn size(&self) -> u8 {
-                    use multihash::Hasher;
                     match self {
-                        Multihash::Identity256(mh) => multihash::Identity256::size(),
-                        Multihash::Strobe256(mh) => multihash::Strobe256::size(),
+                        Multihash::Identity256(_mh) => multihash::Identity256::size(),
+                        Multihash::Strobe256(_mh) => multihash::Strobe256::size(),
                     }
                 }
                 fn digest(&self) -> &[u8] {
