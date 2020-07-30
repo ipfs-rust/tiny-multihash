@@ -118,21 +118,21 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
 
         let ident = bi.ast().ident.clone();
         let code = code.unwrap_or_else(|| {
-            let msg = "Missing code attribute: #[mh(code = 0x42)]";
+            let msg = "Missing code attribute: e.g. #[mh(code = 0x42)]";
             #[cfg(test)]
             panic!(msg);
             #[cfg(not(test))]
             proc_macro_error::abort!(ident, msg);
         });
         let hasher = hasher.unwrap_or_else(|| {
-            let msg = "Missing hasher attribute: #[mh(hasher = multihash::Sha2_256)]";
+            let msg = "Missing hasher attribute: e.g. #[mh(hasher = multihash::Sha2_256)]";
             #[cfg(test)]
             panic!(msg);
             #[cfg(not(test))]
             proc_macro_error::abort!(ident, msg);
         });
         let digest = digest.unwrap_or_else(|| {
-            let msg = "Missing digest in enum variant: Sha256(multihash::Sha2Digest<U32>)]";
+            let msg = "Missing digest in enum variant: e.g. Sha256(multihash::Sha2Digest<U32>)]";
             #[cfg(test)]
             panic!(msg);
             #[cfg(not(test))]
