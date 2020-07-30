@@ -3,25 +3,44 @@ use crate::hasher::Hasher;
 use crate::multihash::MultihashDigest;
 use multihash_proc_macro::Multihash;
 
+/// Multihash code for Identity.
 pub const IDENTITY: u64 = 0x00;
+/// Multihash code for SHA1.
 pub const SHA1: u64 = 0x11;
+/// Multihash code for SHA2-256.
 pub const SHA2_256: u64 = 0x12;
+/// Multihash code for SHA2-512.
 pub const SHA2_512: u64 = 0x13;
+/// Multihash code for SHA3-224.
 pub const SHA3_224: u64 = 0x17;
+/// Multihash code for SHA3-256.
 pub const SHA3_256: u64 = 0x16;
+/// Multihash code for SHA3-384.
 pub const SHA3_384: u64 = 0x15;
+/// Multihash code for SHA3-512.
 pub const SHA3_512: u64 = 0x14;
+/// Multihash code for KECCAK-224.
 pub const KECCAK_224: u64 = 0x1a;
+/// Multihash code for KECCAK-256.
 pub const KECCAK_256: u64 = 0x1b;
+/// Multihash code for KECCAK-384.
 pub const KECCAK_384: u64 = 0x1c;
+/// Multihash code for KECCAK-512.
 pub const KECCAK_512: u64 = 0x1d;
+/// Multihash code for BLAKE2b-256.
 pub const BLAKE2B_256: u64 = 0xb220;
+/// Multihash code for BLAKE2b-512.
 pub const BLAKE2B_512: u64 = 0xb240;
+/// Multihash code for BLAKE2s-128.
 pub const BLAKE2S_128: u64 = 0xb250;
+/// Multihash code for BLAKE2s-256.
 pub const BLAKE2S_256: u64 = 0xb260;
+/// Multihash code for STROBE-256.
 pub const STROBE_256: u64 = 0xa0;
+/// Multihash code for STROBE-512.
 pub const STROBE_512: u64 = 0xa1;
 
+/// An implementation of Multihash.
 #[derive(Clone, Debug, Eq, Multihash, PartialEq)]
 pub enum Multihash {
     /// Multihash array for hash function.
