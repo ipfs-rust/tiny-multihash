@@ -23,6 +23,13 @@ pub use generic_array::typenum::{self, U16, U20, U28, U32, U48, U64};
 #[cfg(feature = "derive")]
 pub use multihash_proc_macro::Multihash;
 
+#[cfg(feature = "code")]
+pub use crate::code::{
+    BLAKE2B_256, BLAKE2B_512, BLAKE2S_128, BLAKE2S_256, IDENTITY, KECCAK_224, KECCAK_256,
+    KECCAK_384, KECCAK_512, SHA1, SHA2_256, SHA2_512, SHA3_224, SHA3_256, SHA3_384, SHA3_512,
+    STROBE_256, STROBE_512,
+};
+
 #[cfg(feature = "blake2b")]
 pub use crate::hasher_impl::blake2b::{Blake2b256, Blake2b512, Blake2bDigest, Blake2bHasher};
 #[cfg(feature = "blake2s")]

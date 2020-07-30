@@ -3,61 +3,80 @@ use crate::hasher::Hasher;
 use crate::multihash::MultihashDigest;
 use multihash_proc_macro::Multihash;
 
+pub const IDENTITY: u64 = 0x00;
+pub const SHA1: u64 = 0x11;
+pub const SHA2_256: u64 = 0x12;
+pub const SHA2_512: u64 = 0x13;
+pub const SHA3_224: u64 = 0x17;
+pub const SHA3_256: u64 = 0x16;
+pub const SHA3_384: u64 = 0x15;
+pub const SHA3_512: u64 = 0x14;
+pub const KECCAK_224: u64 = 0x1a;
+pub const KECCAK_256: u64 = 0x1b;
+pub const KECCAK_384: u64 = 0x1c;
+pub const KECCAK_512: u64 = 0x1d;
+pub const BLAKE2B_256: u64 = 0xb220;
+pub const BLAKE2B_512: u64 = 0xb240;
+pub const BLAKE2S_128: u64 = 0xb250;
+pub const BLAKE2S_256: u64 = 0xb260;
+pub const STROBE_256: u64 = 0xa0;
+pub const STROBE_512: u64 = 0xa1;
+
 #[derive(Clone, Debug, Eq, Multihash, PartialEq)]
 pub enum Multihash {
     /// Multihash array for hash function.
-    #[mh(code = 0x00, hasher = crate::Identity256)]
+    #[mh(code = crate::IDENTITY, hasher = crate::Identity256)]
     Identity256(crate::IdentityDigest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0x11, hasher = crate::Sha1)]
+    #[mh(code = crate::SHA1, hasher = crate::Sha1)]
     Sha1(crate::Sha1Digest<crate::U20>),
     /// Multihash array for hash function.
-    #[mh(code = 0x12, hasher = crate::Sha2_256)]
+    #[mh(code = crate::SHA2_256, hasher = crate::Sha2_256)]
     Sha2_256(crate::Sha2Digest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0x13, hasher = crate::Sha2_512)]
+    #[mh(code = crate::SHA2_512, hasher = crate::Sha2_512)]
     Sha2_512(crate::Sha2Digest<crate::U64>),
     /// Multihash array for hash function.
-    #[mh(code = 0x17, hasher = crate::Sha3_224)]
+    #[mh(code = crate::SHA3_224, hasher = crate::Sha3_224)]
     Sha3_224(crate::Sha3Digest<crate::U28>),
     /// Multihash array for hash function.
-    #[mh(code = 0x16, hasher = crate::Sha3_256)]
+    #[mh(code = crate::SHA3_256, hasher = crate::Sha3_256)]
     Sha3_256(crate::Sha3Digest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0x15, hasher = crate::Sha3_384)]
+    #[mh(code = crate::SHA3_384, hasher = crate::Sha3_384)]
     Sha3_384(crate::Sha3Digest<crate::U48>),
     /// Multihash array for hash function.
-    #[mh(code = 0x14, hasher = crate::Sha3_512)]
+    #[mh(code = crate::SHA3_512, hasher = crate::Sha3_512)]
     Sha3_512(crate::Sha3Digest<crate::U64>),
     /// Multihash array for hash function.
-    #[mh(code = 0x1a, hasher = crate::Keccak224)]
+    #[mh(code = crate::KECCAK_224, hasher = crate::Keccak224)]
     Keccak224(crate::KeccakDigest<crate::U28>),
     /// Multihash array for hash function.
-    #[mh(code = 0x1b, hasher = crate::Keccak256)]
+    #[mh(code = crate::KECCAK_256, hasher = crate::Keccak256)]
     Keccak256(crate::KeccakDigest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0x1c, hasher = crate::Keccak384)]
+    #[mh(code = crate::KECCAK_384, hasher = crate::Keccak384)]
     Keccak384(crate::KeccakDigest<crate::U48>),
     /// Multihash array for hash function.
-    #[mh(code = 0x1d, hasher = crate::Keccak512)]
+    #[mh(code = crate::KECCAK_512, hasher = crate::Keccak512)]
     Keccak512(crate::KeccakDigest<crate::U64>),
     /// Multihash array for hash function.
-    #[mh(code = 0xb220, hasher = crate::Blake2b256)]
+    #[mh(code = crate::BLAKE2B_256, hasher = crate::Blake2b256)]
     Blake2b256(crate::Blake2bDigest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0xb240, hasher = crate::Blake2b512)]
+    #[mh(code = crate::BLAKE2B_512, hasher = crate::Blake2b512)]
     Blake2b512(crate::Blake2bDigest<crate::U64>),
     /// Multihash array for hash function.
-    #[mh(code = 0xb250, hasher = crate::Blake2s128)]
+    #[mh(code = crate::BLAKE2S_128, hasher = crate::Blake2s128)]
     Blake2s128(crate::Blake2sDigest<crate::U16>),
     /// Multihash array for hash function.
-    #[mh(code = 0xb260, hasher = crate::Blake2s256)]
+    #[mh(code = crate::BLAKE2S_256, hasher = crate::Blake2s256)]
     Blake2s256(crate::Blake2sDigest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0xa0, hasher = crate::Strobe256)]
+    #[mh(code = crate::STROBE_256, hasher = crate::Strobe256)]
     Strobe256(crate::StrobeDigest<crate::U32>),
     /// Multihash array for hash function.
-    #[mh(code = 0xa1, hasher = crate::Strobe512)]
+    #[mh(code = crate::STROBE_512, hasher = crate::Strobe512)]
     Strobe512(crate::StrobeDigest<crate::U64>),
 }
 
@@ -67,9 +86,6 @@ mod tests {
     use crate::hasher::Hasher;
     use crate::hasher_impl::strobe::{Strobe256, Strobe512};
     use crate::multihash::{MultihashCreate, MultihashDigest};
-
-    const STROBE_256: u64 = 0xa0;
-    const STROBE_512: u64 = 0xa1;
 
     #[test]
     fn test_hasher_256() {

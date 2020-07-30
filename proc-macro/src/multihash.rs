@@ -15,7 +15,7 @@ mod kw {
 
 #[derive(Debug)]
 enum MhAttr {
-    Code(utils::Attr<kw::code, syn::LitInt>),
+    Code(utils::Attr<kw::code, syn::Path>),
     Hasher(utils::Attr<kw::hasher, syn::Path>),
 }
 
@@ -37,7 +37,7 @@ struct Params {
 #[derive(Debug)]
 struct Hash {
     ident: syn::Ident,
-    code: syn::LitInt,
+    code: syn::Path,
     hasher: syn::Path,
     digest: syn::Path,
 }
@@ -118,7 +118,7 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
 
         let ident = bi.ast().ident.clone();
         let code = code.unwrap_or_else(|| {
-            let msg = "Missing code attribute: e.g. #[mh(code = 0x42)]";
+            let msg = "Missing code attribute: e.g. #[mh(code = multihash::SHA3_256)]";
             #[cfg(test)]
             panic!(msg);
             #[cfg(not(test))]
@@ -224,10 +224,10 @@ mod tests {
         let input = quote! {
            #[derive(Clone, Multihash)]
            pub enum Multihash {
-               #[mh(code = 0x00, hasher = multihash::Identity256)]
+               #[mh(code = multihash::IDENTITY, hasher = multihash::Identity256)]
                Identity256(multihash::IdentityDigest<U32>),
                /// Multihash array for hash function.
-               #[mh(code = 0x01, hasher = multihash::Strobe256)]
+               #[mh(code = multihash::STROBE_256, hasher = multihash::Strobe256)]
                Strobe256(multihash::StrobeDigest<U32>),
             }
         };
@@ -240,8 +240,8 @@ mod tests {
             impl multihash::MultihashDigest for Multihash {
                 fn code(&self) -> u64 {
                     match self {
-                        Multihash::Identity256(_mh) => 0x00,
-                        Multihash::Strobe256(_mh) => 0x01,
+                        Multihash::Identity256(_mh) => multihash::IDENTITY,
+                        Multihash::Strobe256(_mh) => multihash::STROBE_256,
                     }
                 }
                 fn size(&self) -> u8 {
@@ -263,8 +263,8 @@ mod tests {
                 {
                     let code = multihash::read_code(&mut r)?;
                     match code {
-                        0x00 => Ok(Self::Identity256(multihash::read_digest(r)?)),
-                        0x01 => Ok(Self::Strobe256(multihash::read_digest(r)?)),
+                        multihash::IDENTITY => Ok(Self::Identity256(multihash::read_digest(r)?)),
+                        multihash::STROBE_256 => Ok(Self::Strobe256(multihash::read_digest(r)?)),
                         _ => Err(multihash::Error::UnsupportedCode(code)),
                     }
                 }
@@ -272,8 +272,8 @@ mod tests {
             impl multihash::MultihashCreate for Multihash {
                 fn new(code: u64, input: &[u8]) -> Result<Self, multihash::Error> {
                     match code {
-                        0x00 => Ok(Self::Identity256(multihash::Identity256::digest(input))),
-                        0x01 => Ok(Self::Strobe256(multihash::Strobe256::digest(input))),
+                        multihash::IDENTITY => Ok(Self::Identity256(multihash::Identity256::digest(input))),
+                        multihash::STROBE_256 => Ok(Self::Strobe256(multihash::Strobe256::digest(input))),
                         _ => Err(multihash::Error::UnsupportedCode(code)),
                     }
                 }
