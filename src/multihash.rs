@@ -118,7 +118,7 @@ where
     use unsigned_varint::encode as varint_encode;
 
     let mut code_buf = varint_encode::u64_buffer();
-    let code = varint_encode::u64(mh.code().into(), &mut code_buf);
+    let code = varint_encode::u64(mh.code(), &mut code_buf);
 
     let mut size_buf = varint_encode::u8_buffer();
     let size = varint_encode::u8(mh.size(), &mut size_buf);
