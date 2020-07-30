@@ -2,9 +2,8 @@
 #![deny(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// TODO vmx 2020-07-27: Fix it
-//#[cfg(any(test, feature = "test"))]
-//mod arb;
+#[cfg(any(test, feature = "test"))]
+mod arb;
 #[cfg(feature = "code")]
 pub mod code;
 mod error;
