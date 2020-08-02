@@ -104,7 +104,7 @@ mod tests {
     use super::*;
     use crate::hasher::Hasher;
     use crate::hasher_impl::strobe::{Strobe256, Strobe512};
-    use crate::multihash::{MultihashCreate, MultihashDigest};
+    use crate::multihash::MultihashDigest;
 
     #[test]
     fn test_hasher_256() {

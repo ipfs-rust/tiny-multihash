@@ -70,6 +70,13 @@ impl Hash {
         quote!(#code => Ok(Self::#ident(#hasher::digest(input))))
     }
 
+    fn digest_wrap(&self, params: &Params) -> TokenStream {
+        let code = &self.code;
+        let ident = &self.ident;
+        let mh = &params.mh_crate;
+        quote!(#code => Ok(Self::#ident(#mh::Digest::wrap(digest)?)))
+    }
+
     fn digest_read(&self, params: &Params) -> TokenStream {
         let code = &self.code;
         let ident = &self.ident;
@@ -160,6 +167,7 @@ pub fn multihash(s: Structure) -> TokenStream {
     let digest_size = hashes.iter().map(|h| h.digest_size(&params));
     let digest_digest = hashes.iter().map(|h| h.digest_digest(&params));
     let digest_new = hashes.iter().map(|h| h.digest_new());
+    let digest_wrap = hashes.iter().map(|h| h.digest_wrap(&params));
     let digest_read = hashes.iter().map(|h| h.digest_read(&params));
     let from_digest = hashes.iter().map(|h| h.from_digest(&params));
 
@@ -171,7 +179,21 @@ pub fn multihash(s: Structure) -> TokenStream {
         }
 
         impl #mh_crate::MultihashDigest for #mh_enum {
-            fn code(&self) -> u64 {
+           fn new(code: u64, input: &[u8]) -> Result<Self, #mh_crate::Error> {
+              match code {
+                  #(#digest_new,)*
+                  _ => Err(#mh_crate::Error::UnsupportedCode(code)),
+              }
+           }
+
+           fn wrap(code: u64, digest: &[u8]) -> Result<Self, #mh_crate::Error> {
+               match code {
+                  #(#digest_wrap,)*
+                  _ => Err(#mh_crate::Error::UnsupportedCode(code)),
+              }
+           }
+
+           fn code(&self) -> u64 {
                match self {
                    #(#digest_code,)*
                }
@@ -200,15 +222,6 @@ pub fn multihash(s: Structure) -> TokenStream {
                     _ => Err(#mh_crate::Error::UnsupportedCode(code)),
                 }
             }
-        }
-
-        impl #mh_crate::MultihashCreate for #mh_enum {
-           fn new(code: u64, input: &[u8]) -> Result<Self, #mh_crate::Error> {
-              match code {
-                  #(#digest_new,)*
-                  _ => Err(#mh_crate::Error::UnsupportedCode(code)),
-              }
-           }
         }
 
         #(#from_digest)*
