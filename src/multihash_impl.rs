@@ -1,7 +1,7 @@
 //! Default Code and Multihash implementation.
 use crate::hasher::Hasher;
 use crate::multihash::MultihashDigest;
-use multihash_proc_macro::Multihash;
+use multihash_derive::Multihash;
 
 /// Multihash code for Identity.
 pub const IDENTITY: u64 = 0x00;
