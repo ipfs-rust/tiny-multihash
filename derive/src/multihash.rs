@@ -251,6 +251,20 @@ mod tests {
                 }
             }
             impl multihash::MultihashDigest for Multihash {
+                fn new(code: u64, input: &[u8]) -> Result<Self, multihash::Error> {
+                    match code {
+                        multihash::IDENTITY => Ok(Self::Identity256(multihash::Identity256::digest(input))),
+                        multihash::STROBE_256 => Ok(Self::Strobe256(multihash::Strobe256::digest(input))),
+                        _ => Err(multihash::Error::UnsupportedCode(code)),
+                    }
+                }
+                fn wrap(code: u64, digest: &[u8]) -> Result<Self, multihash::Error> {
+                    match code {
+                        multihash::IDENTITY => Ok(Self::Identity256(multihash::Digest::wrap(digest)?)),
+                        multihash::STROBE_256 => Ok(Self::Strobe256(multihash::Digest::wrap(digest)?)),
+                        _ => Err(multihash::Error::UnsupportedCode(code)),
+                    }
+                }
                 fn code(&self) -> u64 {
                     match self {
                         Multihash::Identity256(_mh) => multihash::IDENTITY,
@@ -278,15 +292,6 @@ mod tests {
                     match code {
                         multihash::IDENTITY => Ok(Self::Identity256(multihash::read_digest(r)?)),
                         multihash::STROBE_256 => Ok(Self::Strobe256(multihash::read_digest(r)?)),
-                        _ => Err(multihash::Error::UnsupportedCode(code)),
-                    }
-                }
-            }
-            impl multihash::MultihashCreate for Multihash {
-                fn new(code: u64, input: &[u8]) -> Result<Self, multihash::Error> {
-                    match code {
-                        multihash::IDENTITY => Ok(Self::Identity256(multihash::Identity256::digest(input))),
-                        multihash::STROBE_256 => Ok(Self::Strobe256(multihash::Strobe256::digest(input))),
                         _ => Err(multihash::Error::UnsupportedCode(code)),
                     }
                 }
