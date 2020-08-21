@@ -13,19 +13,15 @@ macro_rules! derive_digest {
             }
         }
 
-        impl<S: Size> From<GenericArray<u8, S>> for $name<S> {
-            fn from(array: GenericArray<u8, S>) -> Self {
+        impl<S: Size> Digest<S> for $name<S> {
+            fn new(array: GenericArray<u8, S>) -> Self {
                 Self(array)
             }
-        }
 
-        impl<S: Size> From<$name<S>> for GenericArray<u8, S> {
-            fn from(digest: $name<S>) -> Self {
-                digest.0
+            fn new_with_size(array: GenericArray<u8, S>, _size: u8) -> Self {
+                Self::new(array)
             }
         }
-
-        impl<S: Size> Digest<S> for $name<S> {}
     };
 }
 
@@ -61,7 +57,7 @@ macro_rules! derive_hasher_blake {
 
             fn finalize(&self) -> Self::Digest {
                 let digest = GenericArray::clone_from_slice(self.state.finalize().as_bytes());
-                Self::Digest::from(digest)
+                Self::Digest::new(digest)
             }
 
             fn reset(&mut self) {
@@ -122,7 +118,7 @@ macro_rules! derive_hasher_sha {
 
             fn finalize(&self) -> Self::Digest {
                 use digest::Digest;
-                Self::Digest::from(self.state.clone().finalize())
+                Self::Digest::new(self.state.clone().finalize())
             }
 
             fn reset(&mut self) {
@@ -174,7 +170,34 @@ pub mod identity {
     use super::*;
     use generic_array::typenum::U32;
 
-    derive_digest!(IdentityDigest);
+    /// Multihash digest.
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
+    pub struct IdentityDigest<S: Size> {
+        array: GenericArray<u8, S>,
+        /// The actual size of the digest, not the allocated one.
+        size: u8,
+    }
+
+    impl<S: Size> AsRef<[u8]> for IdentityDigest<S> {
+        fn as_ref(&self) -> &[u8] {
+            &self.array[..self.size as usize]
+        }
+    }
+
+    impl<S: Size> Digest<S> for IdentityDigest<S> {
+        fn new(array: GenericArray<u8, S>) -> Self {
+            let size = array.len() as u8;
+            Self { array, size }
+        }
+
+        fn new_with_size(array: GenericArray<u8, S>, size: u8) -> Self {
+            Self { array, size }
+        }
+
+        fn size(&self) -> u8 {
+            self.size
+        }
+    }
 
     /// Identity hasher.
     #[derive(Default)]
@@ -195,7 +218,7 @@ pub mod identity {
         }
 
         fn finalize(&self) -> Self::Digest {
-            Self::Digest::from(self.bytes.clone())
+            Self::Digest::new_with_size(self.bytes.clone(), self.i as u8)
         }
 
         fn reset(&mut self) {
@@ -251,7 +274,7 @@ pub mod strobe {
         fn finalize(&self) -> Self::Digest {
             let mut hash = GenericArray::default();
             self.strobe.clone().prf(&mut hash, false);
-            Self::Digest::from(hash)
+            Self::Digest::new(hash)
         }
 
         fn reset(&mut self) {

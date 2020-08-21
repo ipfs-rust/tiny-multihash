@@ -1,4 +1,4 @@
-use crate::hasher::Hasher;
+use crate::hasher::{Digest, Hasher};
 use crate::multihash::MultihashDigest;
 use multihash_derive::Multihash;
 

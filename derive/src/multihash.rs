@@ -53,8 +53,7 @@ impl Hash {
     fn digest_size(&self, params: &Params) -> TokenStream {
         let ident = &self.ident;
         let mh_enum = &params.mh_enum;
-        let hasher = &self.hasher;
-        quote!(#mh_enum::#ident(_mh) => #hasher::size())
+        quote!(#mh_enum::#ident(mh) => mh.size())
     }
 
     fn digest_digest(&self, params: &Params) -> TokenStream {

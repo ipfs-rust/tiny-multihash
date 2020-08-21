@@ -2,8 +2,8 @@ use multihash::{
     Blake2b256, Blake2b512, Blake2s128, Blake2s256, Hasher, Identity256, Keccak224, Keccak256,
     Keccak384, Keccak512, Multihash, MultihashDigest, RawMultihash, Sha1, Sha2_256, Sha2_512,
     Sha3_224, Sha3_256, Sha3_384, Sha3_512, BLAKE2B_256, BLAKE2B_512, BLAKE2S_128, BLAKE2S_256,
-    KECCAK_224, KECCAK_256, KECCAK_384, KECCAK_512, SHA1, SHA2_256, SHA2_512, SHA3_224, SHA3_256,
-    SHA3_384, SHA3_512,
+    IDENTITY, KECCAK_224, KECCAK_256, KECCAK_384, KECCAK_512, SHA1, SHA2_256, SHA2_512, SHA3_224,
+    SHA3_256, SHA3_384, SHA3_512,
 };
 
 /// Helper function to convert a hex-encoded byte array back into a bytearray
@@ -44,7 +44,7 @@ fn multihash_encode() {
     assert_encode! {
         // A hash with a length bigger than 0x80, hence needing 2 bytes to encode the length
         //Identity256, b"abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz", "00a1016162636465666768696a6b6c6d6e6f707172737475767778797a206162636465666768696a6b6c6d6e6f707172737475767778797a206162636465666768696a6b6c6d6e6f707172737475767778797a206162636465666768696a6b6c6d6e6f707172737475767778797a206162636465666768696a6b6c6d6e6f707172737475767778797a206162636465666768696a6b6c6d6e6f707172737475767778797a";
-        //Identity256, b"beep boop", "00096265657020626f6f70";
+        Identity256, b"beep boop", "00096265657020626f6f70";
         Sha1, b"beep boop", "11147c8357577f51d4f0a8d393aa1aaafb28863d9421";
         Sha2_256, b"helloworld", "1220936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af";
         Sha2_256, b"beep boop", "122090ea688e275d580567325032492b597bc77221c62493e76330b85ddda191ef7c";
@@ -80,7 +80,7 @@ macro_rules! assert_decode {
 #[test]
 fn assert_decode() {
     assert_decode! {
-        //Identity256, "000a68656c6c6f776f726c64";
+        IDENTITY, "000a68656c6c6f776f726c64";
         SHA1, "11147c8357577f51d4f0a8d393aa1aaafb28863d9421";
         SHA2_256, "1220936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af";
         SHA2_256, "122090ea688e275d580567325032492b597bc77221c62493e76330b85ddda191ef7c";

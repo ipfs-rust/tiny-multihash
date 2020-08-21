@@ -1,6 +1,5 @@
 use crate::error::Error;
 use core::fmt::Debug;
-use generic_array::typenum::marker_traits::Unsigned;
 use generic_array::{ArrayLength, GenericArray};
 
 /// Size marker trait.
@@ -10,26 +9,28 @@ impl<T: ArrayLength<u8> + Debug + Default + Eq + Send + Sync + 'static> Size for
 
 /// Stack allocated digest trait.
 pub trait Digest<S: Size>:
-    AsRef<[u8]>
-    + From<GenericArray<u8, S>>
-    + Into<GenericArray<u8, S>>
-    + Clone
-    + Debug
-    + Default
-    + Eq
-    + Send
-    + Sync
-    + 'static
+    AsRef<[u8]> + Clone + Debug + Default + Eq + Send + Sync + 'static
 {
     /// Wraps the digest bytes.
     fn wrap(digest: &[u8]) -> Result<Self, Error> {
-        if digest.len() != S::to_u8() as _ {
+        if digest.len() > S::to_u8() as _ {
             return Err(Error::InvalidSize(digest.len() as _));
         }
         let mut array = GenericArray::default();
         array.copy_from_slice(digest);
-        Ok(array.into())
+        Ok(Self::new_with_size(array, digest.len() as u8))
     }
+
+    /// The actual size of the digest.
+    fn size(&self) -> u8 {
+        S::to_u8()
+    }
+
+    /// Create a new digest.
+    fn new(array: GenericArray<u8, S>) -> Self;
+
+    /// Create a new digest where the actual data size is smaller than the GenericArray.
+    fn new_with_size(array: GenericArray<u8, S>, size: u8) -> Self;
 }
 
 /// Trait implemented by a hash function implementation.
@@ -70,11 +71,6 @@ pub trait Hasher: Default {
 
     /// Reset the internal hasher state.
     fn reset(&mut self);
-
-    /// Returns the allocated size of the digest.
-    fn size() -> u8 {
-        Self::Size::to_u8()
-    }
 
     /// Hashes the given `input` data and returns its hash digest.
     fn digest(input: &[u8]) -> Self::Digest

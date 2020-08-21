@@ -162,7 +162,7 @@ impl RawMultihash {
         Ok(Self {
             code: mh.code(),
             size: mh.size(),
-            digest: digest.into(),
+            digest: crate::UnknownDigest::new_with_size(digest, mh.size()),
         })
     }
 
@@ -216,12 +216,27 @@ where
     use unsigned_varint::io::read_u64;
 
     let size = read_u64(&mut r)?;
-    if size != S::to_u64() {
-        return Err(Error::InvalidSize(size));
+
+    if size == S::to_u64() {
+        let mut digest = GenericArray::default();
+        r.read_exact(&mut digest)?;
+        Ok(D::new_with_size(digest, size as u8))
     }
-    let mut digest = GenericArray::default();
-    r.read_exact(&mut digest)?;
-    Ok(D::from(digest))
+    // The actual size of the identity hash is smaller than the allocated size
+    else if size < S::to_u64() {
+        let mut tmp_buf = Vec::with_capacity(S::to_u8() as usize);
+        let bytes_read = r.read_to_end(&mut tmp_buf)?;
+
+        if bytes_read != size as usize {
+            return Err(Error::InvalidSize(size));
+        }
+
+        tmp_buf.resize(S::to_u8() as usize, 0);
+        let digest = GenericArray::clone_from_slice(&tmp_buf);
+        Ok(D::new_with_size(digest, size as u8))
+    } else {
+        Err(Error::InvalidSize(size))
+    }
 }
 
 /// Reads a multihash from a byte stream that contains a full multihash (code, size and the digest)
@@ -249,7 +264,7 @@ where
 
     let mut digest = GenericArray::default();
     r.read_exact(&mut digest)?;
-    Ok((code, size as u8, D::from(digest)))
+    Ok((code, size as u8, D::new_with_size(digest, size as u8)))
 }
 
 #[cfg(test)]
