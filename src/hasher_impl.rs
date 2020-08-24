@@ -1,4 +1,4 @@
-use crate::hasher::{Digest, Hasher, Size};
+use crate::hasher::{Digest, Size, StatefulHasher};
 use generic_array::GenericArray;
 
 macro_rules! derive_digest {
@@ -7,10 +7,7 @@ macro_rules! derive_digest {
         #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
         pub struct $name<S: Size>(GenericArray<u8, S>);
 
-        impl<S: Size> Copy for $name<S>
-        where
-            S::ArrayType: Copy,
-        {}
+        impl<S: Size> Copy for $name<S> where S::ArrayType: Copy {}
 
         impl<S: Size> AsRef<[u8]> for $name<S> {
             fn as_ref(&self) -> &[u8] {
@@ -48,7 +45,9 @@ macro_rules! derive_digest {
         //where
         //    S::ArrayType: parity_scale_codec::Decode + Into<GenericArray<u8, S>>,
         {
-            fn decode<I: parity_scale_codec::Input>(input: &mut I) -> Result<Self, parity_scale_codec::Error> {
+            fn decode<I: parity_scale_codec::Input>(
+                input: &mut I,
+            ) -> Result<Self, parity_scale_codec::Error> {
                 Ok(Self(<[u8; 32]>::decode(input)?.into()))
             }
         }
@@ -80,7 +79,7 @@ macro_rules! derive_hasher_blake {
             }
         }
 
-        impl<S: Size> Hasher for $name<S> {
+        impl<S: Size> StatefulHasher for $name<S> {
             type Size = S;
             type Digest = $digest<Self::Size>;
 
@@ -140,7 +139,7 @@ macro_rules! derive_hasher_sha {
             state: $module,
         }
 
-        impl $crate::hasher::Hasher for $name {
+        impl $crate::hasher::StatefulHasher for $name {
             type Size = $size;
             type Digest = $digest<Self::Size>;
 
@@ -212,7 +211,7 @@ pub mod identity {
         i: usize,
     }
 
-    impl<S: Size> Hasher for IdentityHasher<S> {
+    impl<S: Size> StatefulHasher for IdentityHasher<S> {
         type Size = S;
         type Digest = IdentityDigest<Self::Size>;
 
@@ -268,7 +267,7 @@ pub mod strobe {
         }
     }
 
-    impl<S: Size> Hasher for StrobeHasher<S> {
+    impl<S: Size> StatefulHasher for StrobeHasher<S> {
         type Size = S;
         type Digest = StrobeDigest<Self::Size>;
 

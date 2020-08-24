@@ -4,9 +4,15 @@ use generic_array::typenum::marker_traits::Unsigned;
 use generic_array::{ArrayLength, GenericArray};
 
 /// Size marker trait.
-pub trait Size: ArrayLength<u8> + Debug + Default + Eq + core::hash::Hash + Send + Sync + 'static {}
+pub trait Size:
+    ArrayLength<u8> + Debug + Default + Eq + core::hash::Hash + Send + Sync + 'static
+{
+}
 
-impl<T: ArrayLength<u8> + Debug + Default + Eq + core::hash::Hash + Send + Sync + 'static> Size for T {}
+impl<T: ArrayLength<u8> + Debug + Default + Eq + core::hash::Hash + Send + Sync + 'static> Size
+    for T
+{
+}
 
 /// Stack allocated digest trait.
 pub trait Digest<S: Size>:
@@ -32,6 +38,24 @@ pub trait Digest<S: Size>:
         array.copy_from_slice(digest);
         Ok(array.into())
     }
+}
+
+/// Trait implemented by a hash function implementation.
+pub trait StatefulHasher: Default + Send + Sync {
+    /// The maximum Digest size for that hasher (it is stack allocated).
+    type Size: Size;
+
+    /// The Digest type to distinguish the output of different `Hasher` implementations.
+    type Digest: Digest<Self::Size>;
+
+    /// Consume input and update internal state.
+    fn update(&mut self, input: &[u8]);
+
+    /// Returns the final digest.
+    fn finalize(&self) -> Self::Digest;
+
+    /// Reset the internal hasher state.
+    fn reset(&mut self);
 }
 
 /// Trait implemented by a hash function implementation.
@@ -64,15 +88,6 @@ pub trait Hasher: Default + Send + Sync {
     /// The Digest type to distinguish the output of different `Hasher` implementations.
     type Digest: Digest<Self::Size>;
 
-    /// Consume input and update internal state.
-    fn update(&mut self, input: &[u8]);
-
-    /// Returns the final digest.
-    fn finalize(&self) -> Self::Digest;
-
-    /// Reset the internal hasher state.
-    fn reset(&mut self);
-
     /// Returns the allocated size of the digest.
     fn size() -> u8 {
         Self::Size::to_u8()
@@ -81,8 +96,14 @@ pub trait Hasher: Default + Send + Sync {
     /// Hashes the given `input` data and returns its hash digest.
     fn digest(input: &[u8]) -> Self::Digest
     where
-        Self: Sized,
-    {
+        Self: Sized;
+}
+
+impl<T: StatefulHasher> Hasher for T {
+    type Size = T::Size;
+    type Digest = T::Digest;
+
+    fn digest(input: &[u8]) -> Self::Digest {
         let mut hasher = Self::default();
         hasher.update(input);
         hasher.finalize()
@@ -94,7 +115,7 @@ pub trait Hasher: Default + Send + Sync {
 pub struct WriteHasher<H: Hasher>(H);
 
 #[cfg(feature = "std")]
-impl<H: Hasher> std::io::Write for WriteHasher<H> {
+impl<H: StatefulHasher> std::io::Write for WriteHasher<H> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.0.update(buf);
         Ok(buf.len())

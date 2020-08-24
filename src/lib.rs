@@ -44,7 +44,7 @@ mod multihash_impl;
 pub use crate::error::{Error, Result};
 #[cfg(feature = "std")]
 pub use crate::hasher::WriteHasher;
-pub use crate::hasher::{Digest, Hasher, Size};
+pub use crate::hasher::{Digest, Hasher, Size, StatefulHasher};
 #[cfg(feature = "std")]
 pub use crate::multihash::{read_code, read_digest};
 pub use crate::multihash::{MultihashDigest, RawMultihash};
