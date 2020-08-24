@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn test_hasher_256() {
         let digest = Strobe256::digest(b"hello world");
-        let hash = Multihash::from(digest.clone());
+        let hash = Multihash::from(digest);
         let hash2 = Multihash::new(STROBE_256, b"hello world").unwrap();
         assert_eq!(hash.code(), STROBE_256);
         assert_eq!(hash.size(), 32);
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_hasher_512() {
         let digest = Strobe512::digest(b"hello world");
-        let hash = Multihash::from(digest.clone());
+        let hash = Multihash::from(digest);
         let hash2 = Multihash::new(STROBE_512, b"hello world").unwrap();
         assert_eq!(hash.code(), STROBE_512);
         assert_eq!(hash.size(), 64);
