@@ -4,16 +4,18 @@ use generic_array::typenum::marker_traits::Unsigned;
 use generic_array::{ArrayLength, GenericArray};
 
 /// Size marker trait.
-pub trait Size: ArrayLength<u8> + Debug + Default + Eq + Send + Sync + 'static {}
+pub trait Size: ArrayLength<u8> + Debug + Default + Eq + core::hash::Hash + Send + Sync + 'static {}
 
-impl<T: ArrayLength<u8> + Debug + Default + Eq + Send + Sync + 'static> Size for T {}
+impl<T: ArrayLength<u8> + Debug + Default + Eq + core::hash::Hash + Send + Sync + 'static> Size for T {}
 
 /// Stack allocated digest trait.
 pub trait Digest<S: Size>:
     AsRef<[u8]>
+    + AsMut<[u8]>
     + From<GenericArray<u8, S>>
     + Into<GenericArray<u8, S>>
     + Clone
+    + core::hash::Hash
     + Debug
     + Default
     + Eq
@@ -55,7 +57,7 @@ pub trait Digest<S: Size>:
 /// [Multihashes]: https://github.com/multiformats/multihash
 /// [associated type]: https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#specifying-placeholder-types-in-trait-definitions-with-associated-types
 /// [`MultihashDigest`]: crate::MultihashDigest
-pub trait Hasher: Default {
+pub trait Hasher: Default + Send + Sync {
     /// The maximum Digest size for that hasher (it is stack allocated).
     type Size: Size;
 

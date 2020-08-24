@@ -4,12 +4,23 @@ use generic_array::GenericArray;
 macro_rules! derive_digest {
     ($name:ident) => {
         /// Multihash digest.
-        #[derive(Clone, Debug, Default, Eq, PartialEq)]
+        #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
         pub struct $name<S: Size>(GenericArray<u8, S>);
+
+        impl<S: Size> Copy for $name<S>
+        where
+            S::ArrayType: Copy,
+        {}
 
         impl<S: Size> AsRef<[u8]> for $name<S> {
             fn as_ref(&self) -> &[u8] {
                 &self.0
+            }
+        }
+
+        impl<S: Size> AsMut<[u8]> for $name<S> {
+            fn as_mut(&mut self) -> &mut [u8] {
+                &mut self.0
             }
         }
 
@@ -25,6 +36,23 @@ macro_rules! derive_digest {
             }
         }
 
+        #[cfg(feature = "scale-codec")]
+        impl<S: Size> parity_scale_codec::Encode for $name<S> {
+            fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
+                self.as_ref().using_encoded(f)
+            }
+        }
+
+        #[cfg(feature = "scale-codec")]
+        impl parity_scale_codec::Decode for $name<crate::U32>
+        //where
+        //    S::ArrayType: parity_scale_codec::Decode + Into<GenericArray<u8, S>>,
+        {
+            fn decode<I: parity_scale_codec::Input>(input: &mut I) -> Result<Self, parity_scale_codec::Error> {
+                Ok(Self(<[u8; 32]>::decode(input)?.into()))
+            }
+        }
+
         impl<S: Size> Digest<S> for $name<S> {}
     };
 }
@@ -35,6 +63,7 @@ macro_rules! derive_hasher_blake {
         derive_digest!($digest);
 
         /// Multihash hasher.
+        #[derive(Debug)]
         pub struct $name<S: Size> {
             _marker: PhantomData<S>,
             state: $module::State,
@@ -106,7 +135,7 @@ pub mod blake2s {
 macro_rules! derive_hasher_sha {
     ($module:ty, $name:ident, $size:ty, $digest:ident) => {
         /// Multihash hasher.
-        #[derive(Default)]
+        #[derive(Debug, Default)]
         pub struct $name {
             state: $module,
         }
@@ -177,7 +206,7 @@ pub mod identity {
     derive_digest!(IdentityDigest);
 
     /// Identity hasher.
-    #[derive(Default)]
+    #[derive(Debug, Default)]
     pub struct IdentityHasher<S: Size> {
         bytes: GenericArray<u8, S>,
         i: usize,

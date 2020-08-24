@@ -81,6 +81,8 @@ pub trait MultihashDigest: Clone + Debug + Eq + Send + Sync + 'static {
 /// assert_eq!(mh.digest(), &digest_bytes[2..]);
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "scale-codec", derive(parity_scale_codec::Decode))]
+#[cfg_attr(feature = "scale-codec", derive(parity_scale_codec::Encode))]
 pub struct RawMultihash {
     /// The code of the Multihash.
     code: u64,
