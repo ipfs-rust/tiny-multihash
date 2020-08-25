@@ -39,7 +39,7 @@ pub const STROBE_256: u64 = 0xa0;
 /// Multihash code for STROBE-512.
 pub const STROBE_512: u64 = 0xa1;
 
-/// Default Multihash implementation.
+/// Default (cryptographically secure) Multihash implementation.
 ///
 /// This is a default set of hashing algorithms. Usually applications would use their own subset of
 /// algorithms. See the [`Multihash` derive] for more information.
@@ -47,12 +47,6 @@ pub const STROBE_512: u64 = 0xa1;
 /// [`Multihash` derive]: crate::derive
 #[derive(Clone, Debug, Eq, Multihash, PartialEq)]
 pub enum Multihash {
-    /// Multihash array for hash function.
-    #[mh(code = self::IDENTITY, hasher = crate::Identity)]
-    Identity256(crate::IdentityDigest<crate::U128>),
-    /// Multihash array for hash function.
-    #[mh(code = self::SHA1, hasher = crate::Sha1)]
-    Sha1(crate::Sha1Digest<crate::U20>),
     /// Multihash array for hash function.
     #[mh(code = self::SHA2_256, hasher = crate::Sha2_256)]
     Sha2_256(crate::Sha2Digest<crate::U32>),

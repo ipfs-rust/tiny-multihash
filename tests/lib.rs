@@ -1,10 +1,71 @@
 use tiny_multihash::{
-    Blake2b256, Blake2b512, Blake2s128, Blake2s256, Hasher, Identity, Keccak224, Keccak256,
-    Keccak384, Keccak512, Multihash, MultihashDigest, RawMultihash, Sha1, Sha2_256, Sha2_512,
-    Sha3_224, Sha3_256, Sha3_384, Sha3_512, StatefulHasher, BLAKE2B_256, BLAKE2B_512, BLAKE2S_128,
+    derive::Multihash, read_code, read_digest, Blake2b256, Blake2b512, Blake2bDigest, Blake2s128,
+    Blake2s256, Blake2sDigest, Digest, Error, Hasher, Identity, IdentityDigest, Keccak224,
+    Keccak256, Keccak384, Keccak512, KeccakDigest, MultihashDigest, RawMultihash, Sha1, Sha1Digest,
+    Sha2Digest, Sha2_256, Sha2_512, Sha3Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512,
+    StatefulHasher, Strobe256, Strobe512, StrobeDigest, BLAKE2B_256, BLAKE2B_512, BLAKE2S_128,
     BLAKE2S_256, IDENTITY, KECCAK_224, KECCAK_256, KECCAK_384, KECCAK_512, SHA1, SHA2_256,
-    SHA2_512, SHA3_224, SHA3_256, SHA3_384, SHA3_512,
+    SHA2_512, SHA3_224, SHA3_256, SHA3_384, SHA3_512, STROBE_256, STROBE_512, U128, U16, U20, U28,
+    U32, U48, U64,
 };
+
+#[derive(Clone, Debug, Eq, Multihash, PartialEq)]
+pub enum Multihash {
+    /// Multihash array for hash function.
+    #[mh(code = IDENTITY, hasher = Identity)]
+    Identity256(IdentityDigest<U128>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA1, hasher = Sha1)]
+    Sha1(Sha1Digest<U20>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA2_256, hasher = Sha2_256)]
+    Sha2_256(Sha2Digest<U32>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA2_512, hasher = Sha2_512)]
+    Sha2_512(Sha2Digest<U64>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA3_224, hasher = Sha3_224)]
+    Sha3_224(Sha3Digest<U28>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA3_256, hasher = Sha3_256)]
+    Sha3_256(Sha3Digest<U32>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA3_384, hasher = Sha3_384)]
+    Sha3_384(Sha3Digest<U48>),
+    /// Multihash array for hash function.
+    #[mh(code = SHA3_512, hasher = Sha3_512)]
+    Sha3_512(Sha3Digest<U64>),
+    /// Multihash array for hash function.
+    #[mh(code = KECCAK_224, hasher = Keccak224)]
+    Keccak224(KeccakDigest<U28>),
+    /// Multihash array for hash function.
+    #[mh(code = KECCAK_256, hasher = Keccak256)]
+    Keccak256(KeccakDigest<U32>),
+    /// Multihash array for hash function.
+    #[mh(code = KECCAK_384, hasher = Keccak384)]
+    Keccak384(KeccakDigest<U48>),
+    /// Multihash array for hash function.
+    #[mh(code = KECCAK_512, hasher = Keccak512)]
+    Keccak512(KeccakDigest<U64>),
+    /// Multihash array for hash function.
+    #[mh(code = BLAKE2B_256, hasher = Blake2b256)]
+    Blake2b256(Blake2bDigest<U32>),
+    /// Multihash array for hash function.
+    #[mh(code = BLAKE2B_512, hasher = Blake2b512)]
+    Blake2b512(Blake2bDigest<U64>),
+    /// Multihash array for hash function.
+    #[mh(code = BLAKE2S_128, hasher = Blake2s128)]
+    Blake2s128(Blake2sDigest<U16>),
+    /// Multihash array for hash function.
+    #[mh(code = BLAKE2S_256, hasher = Blake2s256)]
+    Blake2s256(Blake2sDigest<U32>),
+    /// Multihash array for hash function.
+    #[mh(code = STROBE_256, hasher = Strobe256)]
+    Strobe256(StrobeDigest<U32>),
+    /// Multihash array for hash function.
+    #[mh(code = STROBE_512, hasher = Strobe512)]
+    Strobe512(StrobeDigest<U64>),
+}
 
 /// Helper function to convert a hex-encoded byte array back into a bytearray
 fn hex_to_bytes(s: &str) -> Vec<u8> {
