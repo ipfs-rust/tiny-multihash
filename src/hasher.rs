@@ -34,8 +34,30 @@ pub trait Digest<S: Size>:
         if digest.len() != S::to_u8() as _ {
             return Err(Error::InvalidSize(digest.len() as _));
         }
+        Self::fit(digest)
+    }
+
+    /// Extends the digest size to the required size.
+    fn extend(digest: &[u8]) -> Result<Self, Error> {
+        if digest.len() > S::to_u8() as _ {
+            return Err(Error::InvalidSize(digest.len() as _));
+        }
+        Self::fit(digest)
+    }
+
+    /// Wraps and the digest bytes.
+    fn truncate(digest: &[u8]) -> Result<Self, Error> {
+        if digest.len() < S::to_u8() as _ {
+            return Err(Error::InvalidSize(digest.len() as _));
+        }
+        Self::fit(digest)
+    }
+
+    /// Fit the digest bytes.
+    fn fit(digest: &[u8]) -> Result<Self, Error> {
         let mut array = GenericArray::default();
-        array.copy_from_slice(digest);
+        let len = digest.len().min(array.len());
+        array[..len].copy_from_slice(&digest[..len]);
         Ok(array.into())
     }
 }
