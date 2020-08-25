@@ -41,14 +41,14 @@ macro_rules! derive_digest {
         }
 
         #[cfg(feature = "scale-codec")]
-        impl parity_scale_codec::Decode for $name<crate::U32>
-        //where
-        //    S::ArrayType: parity_scale_codec::Decode + Into<GenericArray<u8, S>>,
-        {
+        impl parity_scale_codec::Decode for $name<$crate::U64> {
             fn decode<I: parity_scale_codec::Input>(
                 input: &mut I,
             ) -> Result<Self, parity_scale_codec::Error> {
-                Ok(Self(<[u8; 32]>::decode(input)?.into()))
+                let digest = <[u8; 64]>::decode(input)?;
+                let mut array = GenericArray::default();
+                array.copy_from_slice(&digest[..]);
+                Ok(Self(array))
             }
         }
 
