@@ -211,11 +211,11 @@ where
     use unsigned_varint::io::read_u64;
 
     let size = read_u64(&mut r)?;
-    if size != S::to_u64() {
+    if size > S::to_u64() || size > u8::MAX as u64 {
         return Err(Error::InvalidSize(size));
     }
     let mut digest = GenericArray::default();
-    r.read_exact(&mut digest)?;
+    r.read_exact(&mut digest[..size as usize])?;
     Ok(D::from(digest))
 }
 

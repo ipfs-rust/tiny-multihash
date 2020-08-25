@@ -48,8 +48,8 @@ pub const STROBE_512: u64 = 0xa1;
 #[derive(Clone, Debug, Eq, Multihash, PartialEq)]
 pub enum Multihash {
     /// Multihash array for hash function.
-    #[mh(code = self::IDENTITY, hasher = crate::Identity256)]
-    Identity256(crate::IdentityDigest<crate::U32>),
+    #[mh(code = self::IDENTITY, hasher = crate::Identity)]
+    Identity256(crate::IdentityDigest<crate::U128>),
     /// Multihash array for hash function.
     #[mh(code = self::SHA1, hasher = crate::Sha1)]
     Sha1(crate::Sha1Digest<crate::U20>),

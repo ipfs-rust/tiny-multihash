@@ -29,6 +29,11 @@ pub trait Digest<S: Size>:
     + Sync
     + 'static
 {
+    /// Size of the digest.
+    fn size(&self) -> u8 {
+        S::to_u8()
+    }
+
     /// Wraps the digest bytes.
     fn wrap(digest: &[u8]) -> Result<Self, Error> {
         if digest.len() != S::to_u8() as _ {

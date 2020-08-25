@@ -200,9 +200,41 @@ pub mod sha3 {
 
 pub mod identity {
     use super::*;
-    use generic_array::typenum::U32;
+    use generic_array::typenum::U128;
 
-    derive_digest!(IdentityDigest);
+    /// Multihash digest.
+    #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+    pub struct IdentityDigest<S: Size>(u8, GenericArray<u8, S>);
+
+    impl<S: Size> AsRef<[u8]> for IdentityDigest<S> {
+        fn as_ref(&self) -> &[u8] {
+            &self.1[..self.0 as usize]
+        }
+    }
+
+    impl<S: Size> AsMut<[u8]> for IdentityDigest<S> {
+        fn as_mut(&mut self) -> &mut [u8] {
+            &mut self.1[..self.0 as usize]
+        }
+    }
+
+    impl<S: Size> From<GenericArray<u8, S>> for IdentityDigest<S> {
+        fn from(array: GenericArray<u8, S>) -> Self {
+            Self(array.len() as u8, array)
+        }
+    }
+
+    impl<S: Size> From<IdentityDigest<S>> for GenericArray<u8, S> {
+        fn from(digest: IdentityDigest<S>) -> Self {
+            digest.1
+        }
+    }
+
+    impl<S: Size> Digest<S> for IdentityDigest<S> {
+        fn size(&self) -> u8 {
+            self.0
+        }
+    }
 
     /// Identity hasher.
     #[derive(Debug, Default)]
@@ -216,14 +248,14 @@ pub mod identity {
         type Digest = IdentityDigest<Self::Size>;
 
         fn update(&mut self, input: &[u8]) {
-            let start = self.i;
-            let end = start + input.len();
-            self.bytes[start..end].copy_from_slice(input);
+            let start = self.i.min(self.bytes.len());
+            let end = (self.i + input.len()).min(self.bytes.len());
+            self.bytes[start..end].copy_from_slice(&input);
             self.i = end;
         }
 
         fn finalize(&self) -> Self::Digest {
-            Self::Digest::from(self.bytes.clone())
+            IdentityDigest(self.i as u8, self.bytes.clone())
         }
 
         fn reset(&mut self) {
@@ -232,8 +264,8 @@ pub mod identity {
         }
     }
 
-    /// 256 bit Identity hasher.
-    pub type Identity256 = IdentityHasher<U32>;
+    /// 128 byte Identity hasher (constrained to 128 bytes).
+    pub type Identity = IdentityHasher<U128>;
 }
 
 pub mod unknown {

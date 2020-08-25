@@ -53,8 +53,8 @@ impl Hash {
     fn digest_size(&self, params: &Params) -> TokenStream {
         let ident = &self.ident;
         let mh_enum = &params.mh_enum;
-        let hasher = &self.hasher;
-        quote!(#mh_enum::#ident(_mh) => #hasher::size())
+        let mh = &params.mh_crate;
+        quote!(#mh_enum::#ident(mh) => #mh::Digest::size(mh))
     }
 
     fn digest_digest(&self, params: &Params) -> TokenStream {
@@ -273,8 +273,8 @@ mod tests {
                 }
                 fn size(&self) -> u8 {
                     match self {
-                        Multihash::Identity256(_mh) => tiny_multihash::Identity256::size(),
-                        Multihash::Strobe256(_mh) => tiny_multihash::Strobe256::size(),
+                        Multihash::Identity256(mh) => tiny_multihash::Digest::size(mh),
+                        Multihash::Strobe256(mh) => tiny_multihash::Digest::size(mh),
                     }
                 }
                 fn digest(&self) -> &[u8] {
