@@ -203,6 +203,19 @@ pub mod blake2s {
     pub type Blake2s256 = Blake2sHasher<U32>;
 }
 
+#[cfg(feature = "blake3_")]
+pub mod blake3 {
+    use super::*;
+    use core::marker::PhantomData;
+    use generic_array::typenum::{U64};
+
+    derive_hasher_blake!(blake3, Blake3Hasher, Blake3Digest);
+
+    /// blake3 hasher.
+    pub type Blake3 = Blake3Hasher<U64>;
+
+}
+
 #[cfg(feature = "digest")]
 macro_rules! derive_hasher_sha {
     ($module:ty, $name:ident, $size:ty, $digest:ident) => {

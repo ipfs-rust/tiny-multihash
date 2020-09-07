@@ -34,6 +34,8 @@ pub const BLAKE2B_512: u64 = 0xb240;
 pub const BLAKE2S_128: u64 = 0xb250;
 /// Multihash code for BLAKE2s-256.
 pub const BLAKE2S_256: u64 = 0xb260;
+/// Multihash code for BLAKE3.
+pub const BLAKE3: u64 = 0x1e;
 
 /// Default (cryptographically secure) Multihash implementation.
 ///
@@ -85,6 +87,9 @@ pub enum Multihash {
     /// Multihash array for hash function.
     #[mh(code = self::BLAKE2S_256, hasher = crate::Blake2s256)]
     Blake2s256(crate::Blake2sDigest<crate::U32>),
+    /// Multihash array for hash function.
+    #[mh(code = self::BLAKE3, hasher = crate::Blake3)]
+    Blake3(crate::Blake3Digest<crate::U64>),
 }
 
 #[cfg(test)]
