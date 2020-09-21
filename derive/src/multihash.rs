@@ -17,11 +17,13 @@ mod kw {
     custom_keyword!(digest);
     custom_keyword!(hasher);
     custom_keyword!(mh);
+    custom_keyword!(name);
 }
 
 #[derive(Debug)]
 enum MhAttr {
     Code(utils::Attr<kw::code, syn::Expr>),
+    Name(utils::Attr<kw::name, syn::Expr>),
     Hasher(utils::Attr<kw::hasher, Box<syn::Type>>),
 }
 
@@ -29,6 +31,8 @@ impl Parse for MhAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.peek(kw::code) {
             Ok(MhAttr::Code(input.parse()?))
+        } else if input.peek(kw::name) {
+            Ok(MhAttr::Name(input.parse()?))
         } else {
             Ok(MhAttr::Hasher(input.parse()?))
         }
@@ -44,6 +48,7 @@ struct Params {
 struct Hash {
     ident: syn::Ident,
     code: syn::Expr,
+    name: syn::Expr,
     hasher: Box<syn::Type>,
     digest: syn::Path,
 }
@@ -54,6 +59,14 @@ impl Hash {
         let mh_enum = &params.mh_enum;
         let code = &self.code;
         quote!(#mh_enum::#ident(_mh) => #code)
+    }
+
+    fn digest_name(&self, params: &Params) -> TokenStream {
+        let ident = &self.ident;
+        let name = &self.name;
+        let mh_enum = &params.mh_enum;
+
+        quote!(#mh_enum::#ident(_mh) => #name)
     }
 
     fn digest_size(&self, params: &Params) -> TokenStream {
@@ -83,6 +96,20 @@ impl Hash {
         quote!(#code => Ok(Self::#ident(#mh::Digest::wrap(digest)?)))
     }
 
+    fn digest_new_with_name(&self) -> TokenStream {
+        let name = &self.name;
+        let ident = &self.ident;
+        let hasher = &self.hasher;
+        quote!(#name => Ok(Self::#ident(#hasher::digest(input))))
+    }
+
+    fn digest_wrap_with_name(&self, params: &Params) -> TokenStream {
+        let name = &self.name;
+        let ident = &self.ident;
+        let mh = &params.mh_crate;
+        quote!(#name => Ok(Self::#ident(#mh::Digest::wrap(digest)?)))
+    }
+
     #[cfg(feature = "std")]
     fn digest_read(&self, params: &Params) -> TokenStream {
         let code = &self.code;
@@ -110,12 +137,14 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
         let mut code = None;
         let mut digest = None;
         let mut hasher = None;
+        let mut name = None;
         for attr in bi.ast().attrs {
             let attr: Result<utils::Attrs<MhAttr>, _> = syn::parse2(attr.tokens.clone());
             if let Ok(attr) = attr {
                 for attr in attr.attrs {
                     match attr {
                         MhAttr::Code(attr) => code = Some(attr.value),
+                        MhAttr::Name(attr) => name = Some(attr.value),
                         MhAttr::Hasher(attr) => hasher = Some(attr.value),
                     }
                 }
@@ -138,6 +167,19 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
             #[cfg(not(test))]
             proc_macro_error::abort!(ident, msg);
         });
+
+        let name = if let Some(name) = name {
+            name
+        } else {
+            let mut name = proc_macro2::Literal::string(&ident.to_string());
+            name.set_span(ident.span());
+
+            syn::Expr::from(syn::ExprLit {
+                attrs: vec![],
+                lit: (syn::Lit::new(name)),
+            })
+        };
+
         let hasher = hasher.unwrap_or_else(|| {
             let msg = "Missing hasher attribute: e.g. #[mh(hasher = multihash::Sha2_256)]";
             #[cfg(test)]
@@ -155,38 +197,61 @@ impl<'a> From<&'a VariantInfo<'a>> for Hash {
         Self {
             ident,
             code,
+            name,
             digest,
             hasher,
         }
     }
 }
 
-/// Return an error if the same code is used several times.
+/// Return an error if the same code or name is used several times.
 ///
 /// This only checks for string equality, though this should still catch most errors caused by
 /// copy and pasting.
 fn error_code_duplicates(hashes: &[Hash]) {
     // Use a temporary store to determine whether a certain value is unique or not
-    let mut uniq = HashSet::new();
+    let mut uniq_codes = HashSet::new();
+    let mut uniq_names = HashSet::new();
 
     hashes.iter().for_each(|hash| {
-        let code = &hash.code;
-        let msg = format!(
+        let &Hash { code, name, .. } = &hash;
+
+        let code_msg = format!(
             "the #mh(code) attribute `{}` is defined multiple times",
             quote!(#code)
         );
+        let name_msg = format!(
+            "the #mh(name) attribute `{}` is defined multiple times",
+            quote!(#name)
+        );
 
-        // It's a duplicate
-        if !uniq.insert(code) {
+        // Attempt to insert the code into the codes hashset. If the code was not already in the
+        // codes hashset, then we know we've found a duplicate
+        if !uniq_codes.insert(code) {
             #[cfg(test)]
-            panic!(msg);
+            panic!(code_msg);
             #[cfg(not(test))]
             {
-                let already_defined = uniq.get(code).unwrap();
+                let already_defined = uniq_codes.get(code).unwrap();
                 let line = already_defined.to_token_stream().span().start().line;
                 proc_macro_error::emit_error!(
-                    &hash.code, msg;
+                    &hash.code, code_msg;
                     note = "previous definition of `{}` at line {}", quote!(#code), line;
+                );
+            }
+        }
+
+        // This is the same pattern as above
+        if !uniq_names.insert(name) {
+            #[cfg(test)]
+            panic!(name_msg);
+            #[cfg(not(test))]
+            {
+                let already_defined = uniq_names.get(name).unwrap();
+                let line = already_defined.to_token_stream().span().start().line;
+                proc_macro_error::emit_error!(
+                    &name, name_msg;
+                    note = "previous definition of `{}` at line {}", quote!(#name), line;
                 );
             }
         }
@@ -206,10 +271,13 @@ pub fn multihash(s: Structure) -> TokenStream {
     };
 
     let digest_code = hashes.iter().map(|h| h.digest_code(&params));
+    let digest_name = hashes.iter().map(|h| h.digest_name(&params));
     let digest_size = hashes.iter().map(|h| h.digest_size(&params));
     let digest_digest = hashes.iter().map(|h| h.digest_digest(&params));
     let digest_new = hashes.iter().map(|h| h.digest_new());
     let digest_wrap = hashes.iter().map(|h| h.digest_wrap(&params));
+    let digest_new_with_name = hashes.iter().map(|h| h.digest_new_with_name());
+    let digest_wrap_with_name = hashes.iter().map(|h| h.digest_wrap_with_name(&params));
     #[cfg(feature = "std")]
     let digest_read = hashes.iter().map(|h| h.digest_read(&params));
     let from_digest = hashes.iter().map(|h| h.from_digest(&params));
@@ -252,9 +320,29 @@ pub fn multihash(s: Structure) -> TokenStream {
               }
            }
 
+           fn new_with_name(name: &str, input: &[u8]) -> Result<Self, #mh_crate::Error> {
+              match name {
+                  #(#digest_new_with_name,)*
+                  _ => Err(#mh_crate::Error::UnsupportedName(name.to_string())),
+              }
+           }
+
+           fn wrap_with_name(name: &str, digest: &[u8]) -> Result<Self, #mh_crate::Error> {
+               match name {
+                  #(#digest_wrap_with_name,)*
+                  _ => Err(#mh_crate::Error::UnsupportedName(name.to_string())),
+              }
+           }
+
            fn code(&self) -> u64 {
                match self {
                    #(#digest_code,)*
+               }
+            }
+
+           fn name(&self) -> &'static str {
+               match self {
+                   #(#digest_name,)*
                }
             }
 
@@ -290,7 +378,7 @@ mod tests {
                #[mh(code = tiny_multihash::IDENTITY, hasher = tiny_multihash::Identity256)]
                Identity256(tiny_multihash::IdentityDigest<U32>),
                /// Multihash array for hash function.
-               #[mh(code = 0x38b64f, hasher = tiny_multihash::Strobe256)]
+               #[mh(code = 0x38b64f, name = "Foo_Strobe256", hasher = tiny_multihash::Strobe256)]
                Strobe256(tiny_multihash::StrobeDigest<U32>),
             }
         };
@@ -315,10 +403,30 @@ mod tests {
                         _ => Err(tiny_multihash::Error::UnsupportedCode(code)),
                     }
                 }
+                fn new_with_name(name: &str, input: &[u8]) -> Result<Self, tiny_multihash::Error> {
+                    match name {
+                        "Identity256" => Ok(Self::Identity256(tiny_multihash::Identity256::digest(input))),
+                        "Foo_Strobe256" => Ok(Self::Strobe256(tiny_multihash::Strobe256::digest(input))),
+                        _ => Err(tiny_multihash::Error::UnsupportedName(name.to_string())),
+                    }
+                }
+                fn wrap_with_name(name: &str, digest: &[u8]) -> Result<Self, tiny_multihash::Error> {
+                    match name {
+                        "Identity256" => Ok(Self::Identity256(tiny_multihash::Digest::wrap(digest)?)),
+                        "Foo_Strobe256" => Ok(Self::Strobe256(tiny_multihash::Digest::wrap(digest)?)),
+                        _ => Err(tiny_multihash::Error::UnsupportedName(name.to_string())),
+                    }
+                }
                 fn code(&self) -> u64 {
                     match self {
                         Multihash::Identity256(_mh) => tiny_multihash::IDENTITY,
                         Multihash::Strobe256(_mh) => 0x38b64f,
+                    }
+                }
+                fn name(&self) -> &'static str {
+                    match self {
+                        Multihash::Identity256(_mh) => "Identity256",
+                        Multihash::Strobe256(_mh) => "Foo_Strobe256",
                     }
                 }
                 fn size(&self) -> u8 {
@@ -390,6 +498,23 @@ mod tests {
                #[mh(code = 0x14, hasher = tiny_multihash::Sha2_256)]
                Identity256(tiny_multihash::Sha2Digest<U32>),
                #[mh(code = 0x14, hasher = tiny_multihash::Sha2_256)]
+               Identity256(tiny_multihash::Sha2Digest<U32>),
+            }
+        };
+        let derive_input = syn::parse2(input).unwrap();
+        let s = Structure::new(&derive_input);
+        multihash(s);
+    }
+
+    #[test]
+    #[should_panic(expected = "the #mh(name) attribute `\"Sha2_256\"` is defined multiple times")]
+    fn test_multihash_error_code_duplicates_names() {
+        let input = quote! {
+           #[derive(Clone, Multihash)]
+           pub enum Multihash {
+               #[mh(code = 0x14, name = "Sha2_256", hasher = tiny_multihash::Sha2_256)]
+               Identity256(tiny_multihash::Sha2Digest<U32>),
+               #[mh(code = 0x15, name = "Sha2_256", hasher = tiny_multihash::Sha2_256)]
                Identity256(tiny_multihash::Sha2Digest<U32>),
             }
         };

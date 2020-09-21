@@ -12,6 +12,8 @@ pub enum Error {
     Io(IoError),
     /// Unsupported multihash code.
     UnsupportedCode(u64),
+    /// Unsupported multihash name.
+    UnsupportedName(String),
     /// Invalid multihash size.
     InvalidSize(u64),
     /// Invalid varint.
@@ -24,6 +26,7 @@ impl core::fmt::Display for Error {
             #[cfg(feature = "std")]
             Self::Io(err) => write!(f, "{}", err),
             Self::UnsupportedCode(code) => write!(f, "Unsupported multihash code {}.", code),
+            Self::UnsupportedName(name) => write!(f, "Unsupported multihash name {}.", name),
             Self::InvalidSize(size) => write!(f, "Invalid multihash size {}.", size),
             Self::Varint(err) => write!(f, "{}", err),
         }

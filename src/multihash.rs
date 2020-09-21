@@ -16,8 +16,17 @@ pub trait MultihashDigest: Clone + Debug + Eq + Send + Sync + 'static {
     /// Wraps the digest in a multihash.
     fn wrap(code: u64, digest: &[u8]) -> Result<Self, Error>;
 
+    /// Returns the hash of the input.
+    fn new_with_name(name: &str, input: &[u8]) -> Result<Self, Error>;
+
+    /// Wraps the digest in a multihash.
+    fn wrap_with_name(name: &str, digest: &[u8]) -> Result<Self, Error>;
+
     /// Returns the code of the multihash.
     fn code(&self) -> u64;
+
+    /// Returns the name of the multihash.
+    fn name(&self) -> &'static str;
 
     /// Returns the actual size of the digest, that will be returned by `digest()`.
     fn size(&self) -> u8;
