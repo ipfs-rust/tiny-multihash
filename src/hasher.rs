@@ -39,31 +39,29 @@ pub trait Digest<S: Size>:
         if digest.len() != S::to_usize() {
             return Err(Error::InvalidSize(digest.len() as _));
         }
-        Ok(Self::fit(digest))
-    }
-
-    /// Extends the digest size to the required size.
-    fn extend(digest: &[u8]) -> Result<Self, Error> {
-        if digest.len() > S::to_usize() {
-            return Err(Error::InvalidSize(digest.len() as _));
-        }
-        Ok(Self::fit(digest))
-    }
-
-    /// Wraps and the digest bytes.
-    fn truncate(digest: &[u8]) -> Result<Self, Error> {
-        if digest.len() < S::to_usize() {
-            return Err(Error::InvalidSize(digest.len() as _));
-        }
-        Ok(Self::fit(digest))
-    }
-
-    /// Fit the digest bytes.
-    fn fit(digest: &[u8]) -> Self {
         let mut array = GenericArray::default();
         let len = digest.len().min(array.len());
         array[..len].copy_from_slice(&digest[..len]);
-        array.into()
+        Ok(array.into())
+    }
+
+    /// Reads a multihash digest from a byte stream that contains the digest prefixed with the size.
+    ///
+    /// The byte stream must not contain the code as prefix.
+    #[cfg(feature = "std")]
+    fn from_reader<R>(mut r: R) -> Result<Self, Error>
+    where
+        R: std::io::Read,
+    {
+        use unsigned_varint::io::read_u64;
+
+        let size = read_u64(&mut r)?;
+        if size > S::to_u64() || size > u8::max_value() as u64 {
+            return Err(Error::InvalidSize(size));
+        }
+        let mut digest = GenericArray::default();
+        r.read_exact(&mut digest[..size as usize])?;
+        Ok(Self::from(digest))
     }
 }
 

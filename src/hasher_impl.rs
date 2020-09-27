@@ -1,4 +1,6 @@
+use crate::error::Error;
 use crate::hasher::{Digest, Size, StatefulHasher};
+use core::convert::TryFrom;
 use generic_array::GenericArray;
 
 macro_rules! derive_digest {
@@ -33,95 +35,14 @@ macro_rules! derive_digest {
             }
         }
 
-        #[cfg(feature = "scale-codec")]
-        impl parity_scale_codec::Encode for $name<$crate::U32> {
-            fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
-                let mut digest = [0; 32];
-                digest.copy_from_slice(self.as_ref());
-                digest.using_encoded(f)
-            }
-        }
+        /// Convert slice to `Digest`.
+        ///
+        /// It errors when the length of the slice does not match the size of the `Digest`.
+        impl<S: Size> TryFrom<&[u8]> for $name<S> {
+            type Error = Error;
 
-        #[cfg(feature = "scale-codec")]
-        impl parity_scale_codec::Decode for $name<$crate::U32> {
-            fn decode<I: parity_scale_codec::Input>(
-                input: &mut I,
-            ) -> Result<Self, parity_scale_codec::Error> {
-                let digest = <[u8; 32]>::decode(input)?;
-                let mut array = GenericArray::default();
-                array.copy_from_slice(&digest[..]);
-                Ok(Self(array))
-            }
-        }
-
-        #[cfg(feature = "scale-codec")]
-        impl parity_scale_codec::Encode for $name<$crate::U64> {
-            fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
-                let mut digest = [0; 64];
-                digest.copy_from_slice(self.as_ref());
-                digest.using_encoded(f)
-            }
-        }
-
-        #[cfg(feature = "scale-codec")]
-        impl parity_scale_codec::Decode for $name<$crate::U64> {
-            fn decode<I: parity_scale_codec::Input>(
-                input: &mut I,
-            ) -> Result<Self, parity_scale_codec::Error> {
-                let digest = <[u8; 64]>::decode(input)?;
-                let mut array = GenericArray::default();
-                array.copy_from_slice(&digest[..]);
-                Ok(Self(array))
-            }
-        }
-
-        #[cfg(feature = "serde-codec")]
-        impl<SZ: Size> serde::Serialize for $name<SZ> {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
-            {
-                use serde::ser::SerializeTuple;
-
-                let mut seq = serializer.serialize_tuple(self.0.len())?;
-                for elem in &self.0[..] {
-                    seq.serialize_element(elem)?;
-                }
-                seq.end()
-            }
-        }
-
-        #[cfg(feature = "serde-codec")]
-        impl<'de, S: Size> serde::Deserialize<'de> for $name<S> {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                use core::marker::PhantomData;
-
-                pub struct DigestVisitor<S: Size>(PhantomData<S>);
-
-                impl<'de, S: Size> serde::de::Visitor<'de> for DigestVisitor<S> {
-                    type Value = $name<S>;
-
-                    fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-                        write!(f, "an array of length {}", S::to_u8())
-                    }
-
-                    fn visit_seq<A: serde::de::SeqAccess<'de>>(
-                        self,
-                        mut seq: A,
-                    ) -> Result<Self::Value, A::Error> {
-                        let mut arr = GenericArray::default();
-                        for (i, b) in arr.iter_mut().enumerate() {
-                            *b = seq
-                                .next_element()?
-                                .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-                        }
-                        Ok($name(arr))
-                    }
-                }
-                deserializer.deserialize_tuple(S::to_usize(), DigestVisitor(PhantomData))
+            fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+                Self::wrap(slice)
             }
         }
 
@@ -161,8 +82,8 @@ macro_rules! derive_hasher_blake {
             }
 
             fn finalize(&self) -> Self::Digest {
-                let digest = GenericArray::clone_from_slice(self.state.finalize().as_bytes());
-                Self::Digest::from(digest)
+                let digest = self.state.finalize();
+                GenericArray::clone_from_slice(digest.as_bytes()).into()
             }
 
             fn reset(&mut self) {
@@ -203,17 +124,55 @@ pub mod blake2s {
     pub type Blake2s256 = Blake2sHasher<U32>;
 }
 
-#[cfg(feature = "blake3_")]
+#[cfg(feature = "blake3")]
 pub mod blake3 {
     use super::*;
     use core::marker::PhantomData;
-    use generic_array::typenum::{U64};
+    use generic_array::typenum::U64;
 
-    derive_hasher_blake!(blake3, Blake3Hasher, Blake3Digest);
+    // derive_hasher_blake!(blake3, Blake3Hasher, Blake3Digest);
+    derive_digest!(Blake3Digest);
+
+    /// Multihash hasher.
+    #[derive(Debug)]
+    pub struct Blake3Hasher<S: Size> {
+        _marker: PhantomData<S>,
+        hasher: blake3_::Hasher,
+    }
+
+    impl<S: Size> Default for Blake3Hasher<S> {
+        fn default() -> Self {
+            let mut hasher = blake3_::Hasher::new();
+            // TODO
+            // hasher.hash_length(S::to_usize());
+            // Self {
+            //     _marker: PhantomData,
+            //     state: hasher.to_state(),
+            // }
+        }
+    }
+
+    impl<S: Size> StatefulHasher for Blake3Hasher<S> {
+        type Size = S;
+        type Digest = Blake3Digest<Self::Size>;
+
+        fn update(&mut self, input: &[u8]) {
+            self.hasher.update(input);
+        }
+
+        fn finalize(&self) -> Self::Digest {
+            // TODO discuss what to do with xof
+            let digest = self.hasher.finalize();
+            GenericArray::clone_from_slice(digest.as_bytes()).into()
+        }
+
+        fn reset(&mut self) {
+            self.hasher.reset();
+        }
+    }
 
     /// blake3 hasher.
     pub type Blake3 = Blake3Hasher<U64>;
-
 }
 
 #[cfg(feature = "digest")]
@@ -286,6 +245,7 @@ pub mod sha3 {
 
 pub mod identity {
     use super::*;
+    use crate::error::Error;
     use generic_array::typenum::U32;
 
     /// Multihash digest.
@@ -319,6 +279,36 @@ pub mod identity {
     impl<S: Size> Digest<S> for IdentityDigest<S> {
         fn size(&self) -> u8 {
             self.0
+        }
+
+        // A custom implementation is needed as an identity hash value might be shorter than the
+        // allocated Digest.
+        fn wrap(digest: &[u8]) -> Result<Self, Error> {
+            if digest.len() > S::to_usize() {
+                return Err(Error::InvalidSize(digest.len() as _));
+            }
+            let mut array = GenericArray::default();
+            let len = digest.len().min(array.len());
+            array[..len].copy_from_slice(&digest[..len]);
+            Ok(Self(len as u8, array))
+        }
+
+        // A custom implementation is needed as an identity hash also stores the actual size of
+        // the given digest.
+        #[cfg(feature = "std")]
+        fn from_reader<R>(mut r: R) -> Result<Self, Error>
+        where
+            R: std::io::Read,
+        {
+            use unsigned_varint::io::read_u64;
+
+            let size = read_u64(&mut r)?;
+            if size > S::to_u64() || size > u8::max_value() as u64 {
+                return Err(Error::InvalidSize(size));
+            }
+            let mut digest = GenericArray::default();
+            r.read_exact(&mut digest[..size as usize])?;
+            Ok(Self(size as u8, digest))
         }
     }
 

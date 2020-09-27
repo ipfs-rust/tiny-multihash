@@ -45,25 +45,19 @@ pub use crate::error::{Error, Result};
 #[cfg(feature = "std")]
 pub use crate::hasher::WriteHasher;
 pub use crate::hasher::{Digest, Hasher, Size, StatefulHasher};
-#[cfg(feature = "std")]
-pub use crate::multihash::{read_code, read_digest};
-pub use crate::multihash::{MultihashDigest, RawMultihash};
+pub use crate::multihash::{Multihash, MultihashCode};
 pub use generic_array::typenum::{self, U128, U16, U20, U28, U32, U48, U64};
 #[cfg(feature = "derive")]
 pub use tiny_multihash_derive as derive;
 
 #[cfg(feature = "multihash-impl")]
-pub use crate::multihash_impl::{
-    Multihash, BLAKE2B_256, BLAKE2B_512, BLAKE2S_128, BLAKE2S_256, BLAKE3, IDENTITY, KECCAK_224,
-    KECCAK_256, KECCAK_384, KECCAK_512, SHA1, SHA2_256, SHA2_512, SHA3_224, SHA3_256, SHA3_384,
-    SHA3_512,
-};
+pub use crate::multihash_impl::Code;
 
 #[cfg(feature = "blake2b")]
 pub use crate::hasher_impl::blake2b::{Blake2b256, Blake2b512, Blake2bDigest, Blake2bHasher};
 #[cfg(feature = "blake2s")]
 pub use crate::hasher_impl::blake2s::{Blake2s128, Blake2s256, Blake2sDigest, Blake2sHasher};
-#[cfg(feature = "blake3_")]
+#[cfg(feature = "blake3")]
 pub use crate::hasher_impl::blake3::{Blake3, Blake3Digest, Blake3Hasher};
 pub use crate::hasher_impl::identity::{Identity256, IdentityDigest, IdentityHasher};
 #[cfg(feature = "sha1")]
