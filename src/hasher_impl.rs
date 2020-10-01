@@ -146,7 +146,7 @@ pub mod blake3 {
 
             Self {
                 _marker: PhantomData,
-                hasher: hasher,
+                hasher,
             }
         }
     }
