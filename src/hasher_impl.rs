@@ -128,7 +128,7 @@ pub mod blake2s {
 pub mod blake3 {
     use super::*;
     use core::marker::PhantomData;
-    use generic_array::typenum::U64;
+    use generic_array::typenum::U32;
 
     // derive_hasher_blake!(blake3, Blake3Hasher, Blake3Digest);
     derive_digest!(Blake3Digest);
@@ -137,18 +137,17 @@ pub mod blake3 {
     #[derive(Debug)]
     pub struct Blake3Hasher<S: Size> {
         _marker: PhantomData<S>,
-        hasher: blake3_::Hasher,
+        hasher: ::blake3::Hasher,
     }
 
     impl<S: Size> Default for Blake3Hasher<S> {
         fn default() -> Self {
-            let mut hasher = blake3_::Hasher::new();
-            // TODO
-            // hasher.hash_length(S::to_usize());
-            // Self {
-            //     _marker: PhantomData,
-            //     state: hasher.to_state(),
-            // }
+            let hasher = ::blake3::Hasher::new();
+
+            Self {
+                _marker: PhantomData,
+                hasher: hasher,
+            }
         }
     }
 
@@ -161,8 +160,7 @@ pub mod blake3 {
         }
 
         fn finalize(&self) -> Self::Digest {
-            // TODO discuss what to do with xof
-            let digest = self.hasher.finalize();
+            let digest = self.hasher.finalize(); //default is 32 bytes anyway
             GenericArray::clone_from_slice(digest.as_bytes()).into()
         }
 
@@ -171,8 +169,8 @@ pub mod blake3 {
         }
     }
 
-    /// blake3 hasher.
-    pub type Blake3 = Blake3Hasher<U64>;
+    /// blake3-256 hasher.
+    pub type Blake3_256 = Blake3Hasher<U32>;
 }
 
 #[cfg(feature = "digest")]

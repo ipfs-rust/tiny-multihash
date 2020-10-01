@@ -58,7 +58,7 @@ pub use crate::hasher_impl::blake2b::{Blake2b256, Blake2b512, Blake2bDigest, Bla
 #[cfg(feature = "blake2s")]
 pub use crate::hasher_impl::blake2s::{Blake2s128, Blake2s256, Blake2sDigest, Blake2sHasher};
 #[cfg(feature = "blake3")]
-pub use crate::hasher_impl::blake3::{Blake3, Blake3Digest, Blake3Hasher};
+pub use crate::hasher_impl::blake3::{Blake3_256, Blake3Digest, Blake3Hasher};
 pub use crate::hasher_impl::identity::{Identity256, IdentityDigest, IdentityHasher};
 #[cfg(feature = "sha1")]
 pub use crate::hasher_impl::sha1::{Sha1, Sha1Digest};

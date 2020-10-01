@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use tiny_multihash::{
     derive::Multihash, Blake2b256, Blake2b512, Blake2bDigest, Blake2s128, Blake2s256,
-    Blake2sDigest, Digest, Error, Hasher, Identity256, IdentityDigest, Keccak224, Keccak256,
+    Blake2sDigest, Blake3_256, Blake3Digest, Digest, Error, Hasher, Identity256, IdentityDigest, Keccak224, Keccak256,
     Keccak384, Keccak512, KeccakDigest, Multihash, MultihashCode, Sha1, Sha1Digest, Sha2Digest,
     Sha2_256, Sha2_512, Sha3Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512, Size, StatefulHasher,
     Strobe256, Strobe512, StrobeDigest, U16, U20, U28, U32, U48, U64,
@@ -43,6 +43,8 @@ pub enum Code {
     Blake2s128,
     #[mh(code = 0xb260, hasher = Blake2s256, digest = Blake2sDigest<U32>)]
     Blake2s256,
+    #[mh(code = 0x1e, hasher = Blake3_256, digest = Blake3Digest<U32>)]
+    Blake3_256,
     #[mh(code = 0x3312e7, hasher = Strobe256, digest = StrobeDigest<U16>)]
     Strobe256,
     #[mh(code = 0x3312e8, hasher = Strobe512, digest = StrobeDigest<U32>)]
@@ -196,6 +198,7 @@ fn assert_roundtrip() {
         Code::Keccak512, Keccak512;
         Code::Blake2b512, Blake2b512;
         Code::Blake2s256, Blake2s256;
+        Code::Blake3_256, Blake3_256;
     );
 }
 

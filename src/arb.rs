@@ -19,7 +19,7 @@ const HASHES: [Code; 16] = [
     Code::Blake2b512,
     Code::Blake2s128,
     Code::Blake2s256,
-    Code::Blake3,
+    Code::Blake3_256,
 ];
 
 /// Generates a random valid multihash.
